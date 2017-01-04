@@ -197,10 +197,6 @@ vmcosmix_manyx <- function(x, par, pi, log_c_von) {
     .Call('BAMBI_vmcosmix_manyx', PACKAGE = 'BAMBI', x, par, pi, log_c_von)
 }
 
-hellomp <- function() {
-    invisible(.Call('BAMBI_hellomp', PACKAGE = 'BAMBI'))
-}
-
 const_vmsin <- function(k1, k2, lambda) {
     .Call('BAMBI_const_vmsin', PACKAGE = 'BAMBI', k1, k2, lambda)
 }

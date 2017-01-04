@@ -261,8 +261,9 @@ dvmsinmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 #' @param iter.tune number of initial iterations used to tune the parameters (\code{epsilon} in HMC and
 #' \code{propscale} in RWMH). Default is 20. Ignored if \code{autotune == FALSE}.
 #' @param ncores number of CPU cores to be used for computing the likelihood, the posterior weight matrix for
-#' the Gibbs Sampler of mixture proportions and the gradient in HMC. Default is all of the available cores
-#' (obtained via \link{detectCores}).
+#' the Gibbs Sampler of mixture proportions and the gradient in HMC in parallel. Default is all of the available cores
+#' (obtained via \link{detectCores}). Note that parallelization is implemented using OpenMP.  This argument is ignored and the
+#' computations are done serially if OpenMP is not available.
 #' @param show.progress logical. Should a progress bar be included?
 #'
 #' @details

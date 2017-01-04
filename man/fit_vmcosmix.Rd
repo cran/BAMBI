@@ -50,8 +50,9 @@ parameters are discarded.) Set to \code{FALSE} by default.}
 \code{propscale} in RWMH). Default is 20. Ignored if \code{autotune == FALSE}.}
 
 \item{ncores}{number of CPU cores to be used for computing the likelihood, the posterior weight matrix for
-the Gibbs Sampler of mixture proportions and the gradient in HMC. Default is all of the available cores
-(obtained via \link{detectCores}).}
+the Gibbs Sampler of mixture proportions and the gradient in HMC in parallel. Default is all of the available cores
+(obtained via \link{detectCores}). Note that parallelization is implemented using OpenMP.  This argument is ignored and the
+computations are done serially if OpenMP is not available.}
 
 \item{show.progress}{logical. Should a progress bar be included?}
 }

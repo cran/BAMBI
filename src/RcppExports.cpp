@@ -684,15 +684,6 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// hellomp
-void hellomp();
-RcppExport SEXP BAMBI_hellomp() {
-BEGIN_RCPP
-    Rcpp::RNGScope __rngScope;
-    hellomp();
-    return R_NilValue;
-END_RCPP
-}
 // const_vmsin
 double const_vmsin(double k1, double k2, double lambda);
 RcppExport SEXP BAMBI_const_vmsin(SEXP k1SEXP, SEXP k2SEXP, SEXP lambdaSEXP) {

@@ -67,7 +67,7 @@ inline double BESSI1(double x)
 inline double BESSI(int n, double x)
 {
   int j;
-  int ACC = 40.0;  //Make larger to increase accuracy.
+  double ACC = 40.0;  //Make larger to increase accuracy.
   double BIGNO = 1.0e10, BIGNI = 1.0e-10;
   double bi,bim,bip,tox,ans;
   if (n == 0) return BESSI0(x);

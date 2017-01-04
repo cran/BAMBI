@@ -5,15 +5,15 @@ using namespace Rcpp;
 
 typedef std::vector<arma::mat> stdvec_mat;
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+
+#include "thread_num.h"
 #include "bessel.h"
 
 
-// // [[Rcpp::export]]
-// double const_uniwnorm(double k)
-// {
-//   return sqrt(2 * M_PI / k);
-//   //  0.5*log(2*M_PI / par_mat(0, j))
-// }
 
 
 // [[Rcpp::export]]
@@ -142,11 +142,11 @@ arma::vec uniwnormmix_manyx(arma::vec x, arma::mat par, arma::vec pi, arma::vec 
 arma::mat mem_p_uniwnorm(arma::vec data, arma::mat par, arma::vec pi,
                          arma::vec log_c_von, arma::vec omega_2pi_1d, int ncores = 1)
 {
-  int n = data.n_rows, K = par.n_cols, i, j;
+  int n = data.n_rows, K = par.n_cols, j;
   double row_total;
   arma::mat den(n, K);
-#pragma omp parallel for private(j, row_total) shared(i) num_threads(ncores)
-  for(i = 0; i < n; i++){
+#pragma omp parallel for private(j, row_total) num_threads(ncores)
+  for(int i = 0; i < n; i++){
     row_total = 0;
     for(j = 0; j < K; j++){
       den(i, j) = pi[j]*exp(lduniwnormnum(data[i], par.col(j), omega_2pi_1d) - log_c_von[j]);;
@@ -164,21 +164,21 @@ arma::mat mem_p_uniwnorm(arma::vec data, arma::mat par, arma::vec pi,
 double llik_uniwnorm_full(arma::vec data, arma::mat par, arma::vec pi,
                           arma::vec log_c, arma::vec omega_2pi_1d, int ncores = 1)
 {
-  int n = data.n_rows, K = pi.size(), i ,j;
+  int n = data.n_rows, K = pi.size(), j;
   long double temp, log_sum = 0.0;
   arma::vec log_pi = log(pi);
 
   if(K > 1) {
 #pragma omp parallel for reduction(+:log_sum)  private(j, temp) num_threads(ncores)
-    for(i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++) {
       temp = 0;
       for(j = 0; j < K; j++)
         temp += exp(lduniwnormnum(data[i], par.col(j), omega_2pi_1d) - log_c[j] + log_pi[j] );
       log_sum += log(maxi(temp, 1e-100));
     }
   } else {
-#pragma omp parallel for reduction(+:log_sum) shared(i)  num_threads(ncores)
-    for(i = 0; i < n; i++)
+#pragma omp parallel for reduction(+:log_sum)  num_threads(ncores)
+    for(int i = 0; i < n; i++)
       log_sum += lduniwnormnum(data[i], par, omega_2pi_1d);
     log_sum -= n*log_c[0];
   }
@@ -186,16 +186,16 @@ double llik_uniwnorm_full(arma::vec data, arma::mat par, arma::vec pi,
 }
 
 
-arma::vec grad_den_uniwnorm_one_comp_i_unadj(double x, arma::vec par, arma::vec omega_2pi_1d) {
-
+arma::vec grad_den_uniwnorm_one_comp_i_unadj(double x, arma::vec par, arma::vec omega_2pi_1d)
+{
   double k = par[0], mu = par[1];
   int M = omega_2pi_1d.n_rows;
   double expon_j;
   arma::mat all_entries(3, M);  ;
   for(int j = 0; j < M; j++) {
     expon_j = exp(-0.5 * k * (x - mu - omega_2pi_1d[j]) * (x - mu - omega_2pi_1d[j]));
-    all_entries(0, j) = expon_j * (1 - k*(x - mu - omega_2pi_1d[j])*(x - mu - omega_2pi_1d[j]));// / (2*sqrt_2pi*sqrt_k);
-    all_entries(1, j) = expon_j * (x - mu - omega_2pi_1d[j]); // * (k*sqrt_k/sqrt_2pi);
+    all_entries(0, j) = expon_j * (1 - k*(x - mu - omega_2pi_1d[j])*(x - mu - omega_2pi_1d[j]));// / (2.0*sqrt_2pi*sqrt_k);
+    all_entries(1, j) = expon_j * (x - mu - omega_2pi_1d[j]); // * (1.0*k*sqrt_k/sqrt_2pi);
     all_entries(2, j) = expon_j;
   }
 
@@ -210,12 +210,12 @@ arma::vec grad_den_uniwnorm_one_comp_i_unadj(double x, arma::vec par, arma::vec 
 arma::mat grad_uniwnorm_all_comp(arma::vec data, arma::mat par_mat, arma::vec pi,
                                  arma::vec omega_2pi_1d, int ncores)
 {
-  int n = data.size(), K = pi.size(), i ,j;
+  int n = data.size(), K = pi.size(), j;
   double denom;
   arma::mat  grad_sum = arma::zeros(2, K);
   arma::vec uniwnorm_const(K); // log_uniwnorm_const(K) = log_const_uniwnorm_all(par_mat), log_pi = log(pi);
   for(j = 0; j < K; j++)
-    uniwnorm_const[j] = sqrt(par_mat(0, j)); // / (2 * M_PI));// 0.5*log(2 * M_PI / k)
+    uniwnorm_const[j] = sqrt(par_mat(0, j)); // / (2 * M_PI));// 0.5*log(2.0 * M_PI / k)
 
   stdvec_mat grad_sum_part(ncores);
   for(int g = 0; g < ncores; g++)
@@ -223,9 +223,9 @@ arma::mat grad_uniwnorm_all_comp(arma::vec data, arma::mat par_mat, arma::vec pi
 
 
 #pragma omp parallel for   private(j, denom) num_threads(ncores)
-  for(i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     arma::mat grad_den_temp(3, K);
-    int g = omp_get_thread_num();
+    int g = get_thread_num_final();
     denom = 0;
     for(j = 0; j < K; j++){
       // denom += exp(lduniwnormnum(data[i], par_mat.col(j), omega_2pi_1d) - log_uniwnorm_const[j] + log_pi[j] );
@@ -239,7 +239,7 @@ arma::mat grad_uniwnorm_all_comp(arma::vec data, arma::mat par_mat, arma::vec pi
     grad_sum += grad_sum_part[g];
 
 
-//  double sqrt_2pi = sqrt(2*M_PI);
+//  double sqrt_2pi = sqrt((double) 2*M_PI);
   arma::vec kappa = arma::trans(par_mat.row(0)), sqrt_kappa = arma::sqrt(kappa);
   arma::mat adj_factor(2, K);
 

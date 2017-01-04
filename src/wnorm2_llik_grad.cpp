@@ -1,6 +1,12 @@
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+
+#include "thread_num.h"
 
 using namespace Rcpp;
 
@@ -51,12 +57,12 @@ arma::vec log_const_wnorm2_all(arma::mat par_mat) {
 arma::mat mem_p_wnorm2(arma::mat data, arma::mat par_mat, arma::vec pi,
                        arma::vec log_c_wnorm, arma::mat omega_2pi, int ncores = 1)
 {
-  int n = data.n_rows, K = par_mat.n_cols, i, j;
+  int n = data.n_rows, K = par_mat.n_cols, j;
   double row_total;
   arma::mat den(n, K);
   arma::vec log_pi = log(pi);
-#pragma omp parallel for private(j, row_total) shared(i) num_threads(ncores)
-  for(i = 0; i < n; i++) {
+#pragma omp parallel for private(j, row_total) num_threads(ncores)
+  for(int i = 0; i < n; i++) {
     row_total = 0;
     for(j = 0; j < K; j++){
       den(i, j) = exp(ldwnorm2_num(arma::trans(data.row(i)), par_mat.col(j), omega_2pi) - log_c_wnorm[j] + log_pi[j]);
@@ -75,21 +81,21 @@ arma::mat mem_p_wnorm2(arma::mat data, arma::mat par_mat, arma::vec pi,
 long double llik_wnorm2_full(arma::mat data, arma::mat par, arma::vec pi,
                              arma::vec log_c, arma::mat omega_2pi, int ncores = 1)
 {
-  int n = data.n_rows, K = pi.size(), i ,j;
+  int n = data.n_rows, K = pi.size(), j;
   long double temp, log_sum = 0.0;
   arma::vec log_pi = log(pi);
 
   if(K > 1) {
 #pragma omp parallel for reduction(+:log_sum)  private(j, temp) num_threads(ncores)
-    for(i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++) {
       temp = 0;
       for(j = 0; j < K; j++)
         temp += exp(ldwnorm2_num(arma::trans(data.row(i)), par.col(j), omega_2pi) - log_c[j] + log_pi[j] );
       log_sum += log(temp);
     }
   } else {
-#pragma omp parallel for reduction(+:log_sum) shared(i)  num_threads(ncores)
-    for(i = 0; i < n; i++) {
+#pragma omp parallel for reduction(+:log_sum)  num_threads(ncores)
+    for(int i = 0; i < n; i++) {
       log_sum += ldwnorm2_num(arma::trans(data.row(i)), par, omega_2pi);
     }
     log_sum -= n*log_c[0];
@@ -131,7 +137,7 @@ arma::vec grad_den_wnorm2_one_comp_i_unadj(double x, double y, arma::vec par, do
 arma::mat grad_wnorm2_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi,
                                arma::mat omega_2pi, int ncores = 1)
 {
-  int n = data.n_rows, K = pi.size(), i ,j;
+  int n = data.n_rows, K = pi.size(), j;
   double denom;
   arma::mat grad_sum = arma::zeros(5, K);
 
@@ -146,9 +152,9 @@ arma::mat grad_wnorm2_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi,
   arma::vec det_sig_inv_sqrt = arma::sqrt(det_sig_inv);
 
 #pragma omp parallel for   private(j, denom) num_threads(ncores)
-  for(i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     arma::mat grad_den_temp(6, K);
-    int g = omp_get_thread_num();
+    int g = get_thread_num_final();
     // int g = 0;
     denom = 0;
     for(j = 0; j < K; j++){

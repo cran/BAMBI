@@ -3,6 +3,12 @@
 
 using namespace Rcpp;
 
+#ifdef _OPENMP
+  #include <omp.h>
+#endif
+
+
+#include "thread_num.h"
 #include "bessel.h"
 #include "univmgen.h"
 
@@ -243,11 +249,11 @@ arma::mat rsin_manypar(arma::vec k1, arma::vec k2, arma::vec k3,
 arma::mat mem_p_sin(arma::mat data, arma::mat par, arma::vec pi,
                     arma::vec log_c_von, int ncores = 1)
 {
-  int n = data.n_rows, K = par.n_cols, i, j;
+  int n = data.n_rows, K = par.n_cols,  j;
   double row_total;
   arma::mat den(n, K);
-#pragma omp parallel for private(j, row_total) shared(i) num_threads(ncores)
-  for(i = 0; i < n; i++){
+#pragma omp parallel for private(j, row_total) num_threads(ncores)
+  for(int i = 0; i < n; i++){
     row_total = 0;
     for(j = 0; j < K; j++){
       den(i, j) = pi[j]*exp(ldsinnum(data(i, 0), data(i, 1), par.col(j)) - log_c_von[j]);;
@@ -265,21 +271,21 @@ arma::mat mem_p_sin(arma::mat data, arma::mat par, arma::vec pi,
 double llik_vmsin_full(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c, int ncores = 1)
 {
 
-  int n = data.n_rows, K = pi.size(), i ,j;
+  int n = data.n_rows, K = pi.size() ,j;
   long double temp, log_sum = 0.0;
   arma::vec log_pi = log(pi);
 
   if(K > 1) {
 #pragma omp parallel for reduction(+:log_sum)  private(j, temp) num_threads(ncores)
-    for(i = 0; i < n; i++) {
+    for(int i = 0; i < n; i++) {
       temp = 0;
       for(j = 0; j < K; j++)
         temp += exp(ldsinnum(data(i,0), data(i,1), par.col(j)) - log_c[j] + log_pi[j] );
       log_sum += log(temp);
     }
   }  else {
-#pragma omp parallel for reduction(+:log_sum) shared(i)  num_threads(ncores)
-    for(i = 0; i < n; i++)
+#pragma omp parallel for reduction(+:log_sum) num_threads(ncores)
+    for(int i = 0; i < n; i++)
       log_sum += ldsinnum(data(i,0), data(i,1), par);
     log_sum -= n*log_c[0];
   }
@@ -304,7 +310,7 @@ arma::vec grad_log_vmsin_one_comp_i(double x, double y, arma::vec par,
 // [[Rcpp::export]]
 arma::mat grad_vmsin_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi, int ncores = 1)
 {
-  int n = data.n_rows, K = pi.size(), i ,j;
+  int n = data.n_rows, K = pi.size(), j;
   arma::vec l_c_vmsin = log_const_vmsin_all(par_mat);
   arma::vec c_vmsin = arma::exp(l_c_vmsin), log_pi = log(pi);
 
@@ -323,9 +329,9 @@ arma::mat grad_vmsin_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi, i
   double denom, temp;
 
 #pragma omp parallel for   private(j, denom, temp) num_threads(ncores)
-  for(i = 0; i < n; i++) {
+  for(int i = 0; i < n; i++) {
     arma::mat grad_temp(5, K);
-    int g = omp_get_thread_num();
+    int g = get_thread_num_final();
     // int g = 0;
     denom = 0;
     for(j = 0; j < K; j++) {
