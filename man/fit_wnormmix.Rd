@@ -4,12 +4,11 @@
 \alias{fit_wnormmix}
 \title{Fitting univariate wrapped normal mixtures using MCMC}
 \usage{
-fit_wnormmix(data, ncomp, start_par, method = "hmc",
-             epsilon = 0.07, L = 10, epsilon.random = TRUE,
-             L.random = FALSE, propscale = rep(0.01, 2),
-             n.iter = 1e4, int.displ, gam.loc = 0,
-             gam.scale = 1000, autotune = FALSE, iter.tune=10,
-             ncores, show.progress = TRUE)
+fit_wnormmix(data, ncomp, start_par, method = "hmc", epsilon = 0.07,
+  L = 10, epsilon.random = TRUE, L.random = FALSE, propscale = rep(0.01,
+  2), n.iter = 10000, int.displ, gam.loc = 0, gam.scale = 1000,
+  pmix.alpha = 1/2, autotune = FALSE, iter.tune = 10, ncores,
+  show.progress = TRUE)
 }
 \arguments{
 \item{data}{vector of observations (in radians). If outside, the values are transformed into the scale \eqn{[0, 2\pi)}.}
@@ -42,6 +41,9 @@ Default is 3.}
 
 \item{gam.loc, gam.scale}{location and scale (hyper-) parameters for the gamma prior for \code{kappa}. See
 \link{dgamma}. Defaults are \code{gam.loc = 0, gam.scale = 1000} that makes the prior non-informative.}
+
+\item{pmix.alpha}{concentration parameter(s) for the Dirichlet prior for \code{pmix}. Must either be a positive real number, or a vector
+with positive entries and of the same size as \code{pmix}. The default is 1/2 which corresponds to the Jeffreys prior.}
 
 \item{autotune}{logical. Should the Markov chain auto-tune the parameters (\code{epsilon} in HMC and
 \code{propscale} in RWMH) on the basis of acceptances in \code{iter.tune}? (The iterations used to tune the

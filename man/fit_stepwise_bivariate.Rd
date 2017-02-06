@@ -66,7 +66,7 @@ through the argument \code{model}).
 fit.vmsin.step.15 <- fit_stepwise_bivariate(tim8, "vmsin", start_ncomp = 3,
                                             max_ncomp = 5, n.iter = 15,
                                             ncores = 1)
-(fit.vmsin.best.15 <- fit.vmsin.step.15$fit.best)
+(fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15))
 contour(fit.vmsin.best.15)
 
 }

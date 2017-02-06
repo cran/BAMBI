@@ -262,13 +262,6 @@ dwnorm2mix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix, int.displ)
 #' If the acceptance rate drops below 5\% after 100 or more HMC iterations, \code{epsilon} is automatically lowered, and the
 #' Markov chain is restarted at the current parameter values.
 #'
-#' @usage
-#' fit_wnorm2mix(data, ncomp, start_par = list(), method = "hmc",
-#'               epsilon = 0.005, L = 10, epsilon.random = TRUE,
-#'               L.random = FALSE, propscale = rep(0.01, 5),
-#'               n.iter = 500, int.displ, gam.loc = 0,
-#'               gam.scale = 1000, norm.var = 1000, autotune = FALSE,
-#'               iter.tune = 10, ncores, show.progress = TRUE)
 #'
 #' @return returns an angmcmc object.
 #'
@@ -282,7 +275,7 @@ dwnorm2mix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix, int.displ)
 
 fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=0.005, L=10, epsilon.random=TRUE,
                           L.random=FALSE, propscale = rep(0.01, 5), n.iter=500, int.displ, gam.loc=0, gam.scale=1000,
-                          norm.var=1000, autotune = FALSE, iter.tune=10, ncores, show.progress = TRUE) {
+                          norm.var=1000, pmix.alpha = 1/2, autotune = FALSE, iter.tune=10, ncores, show.progress = TRUE) {
 
   if(is.null(dim(data)) | !(mode(data) %in% c("list", "numeric") && ncol(data) == 2)) stop("non-compatible data")
 
@@ -351,7 +344,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
   starting$par.mat[abs(starting$par.mat) >= kappa_upper/2] <- kappa_upper/2
   starting$l.c.wnorm2 <- as.numeric(log_const_wnorm2_all(starting$par.mat))
   starting$llik <- llik_wnorm2_full(data.rad, starting$par.mat, starting$pi.mix, starting$l.c.wnorm2, omega.2pi, ncores)
-  starting$lprior <- sum(ldgamanum(starting$par.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((starting$par.mat[3,]/norm.var)^2)
+  starting$lprior <- sum((pmix.alpha-1) * log(starting$pi.mix)) + sum(ldgamanum(starting$par.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((starting$par.mat[3,]/norm.var)^2)
   starting$lpd <- starting$llik + starting$lprior
 
   par.mat.all <- array(0, dim = c(5, ncomp, n.iter+1))
@@ -557,7 +550,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
         par.mat.prop <- q
         l.c.wnorm2.prop <- log_const_wnorm2_all(par.mat.prop)
 
-        lprior.prop <- sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
 
         llik.prop <- llik_wnorm2_full(data.rad, q, pi.mix.1, l.c.wnorm2.prop, omega.2pi, ncores)
 
@@ -643,7 +636,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
       } else {
         l.c.wnorm2.prop <- as.numeric(log_const_wnorm2_all(prop.mat))
         llik_prop <- llik_wnorm2_full(data.rad, prop.mat, pi.mix.1, l.c.wnorm2.prop, omega.2pi, ncores)
-        lprior_prop <- sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
+        lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
       }
 
       post.omg_old <- llik_old + lprior_old
@@ -750,7 +743,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
         post.wt <- mem_p_wnorm2(data.rad, par.mat.old, pi.mix.old, l.c.wnorm2.old, omega.2pi, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp) #vector of component sizes
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_wnorm2_full(data.rad, par.mat.old, pi.mix.1, l.c.wnorm2.old, omega.2pi, ncores)
       }
 
@@ -913,7 +906,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
         par.mat.prop <- q
         l.c.wnorm2.prop <- log_const_wnorm2_all(par.mat.prop)
 
-        lprior.prop <- sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
 
         llik.prop <- llik_wnorm2_full(data.rad, q, pi.mix.1, l.c.wnorm2.prop, omega.2pi, ncores)
 
@@ -985,7 +978,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
         post.wt <- mem_p_wnorm2(data.rad, par.mat.old, pi.mix.old, l.c.wnorm2.old, omega.2pi, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp) #vector of component sizes
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_wnorm2_full(data.rad, par.mat.old, pi.mix.1, l.c.wnorm2.old, omega.2pi, ncores)
       }
 
@@ -1012,7 +1005,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
       } else {
         l.c.wnorm2.prop <- as.numeric(log_const_wnorm2_all(prop.mat))
         llik_prop <- llik_wnorm2_full(data.rad, prop.mat, pi.mix.1, l.c.wnorm2.prop, omega.2pi, ncores)
-        lprior_prop <- sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
+        lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
       }
 
 
@@ -1123,6 +1116,7 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
                  "epsilon.random" = epsilon.random, "epsilon" = epsilon_ave,
                  "L.random" = L.random, "L" = L_ave, "type" = "bi", "omega.2pi" = omega.2pi,
                  "propscale.final" = propscale_final, "data" = data.rad, "int.displ" = int.displ,
+                 "gam.loc" = gam.loc, "gam.scale" = gam.scale, "norm.var" = norm.var, "pmix.alpha" = pmix.alpha,
                  "n.data" = n.data, "ncomp" = ncomp, "n.iter" = n.iter)
   class(result) <- "angmcmc"
 

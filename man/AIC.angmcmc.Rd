@@ -5,7 +5,7 @@
 \alias{BIC.angmcmc}
 \title{AIC and BIC for angmcmc objects}
 \usage{
-\method{AIC}{angmcmc}(object, burnin = 1/3, thin = 1, ...)
+\method{AIC}{angmcmc}(object, burnin = 1/3, thin = 1, k = 2, ...)
 
 \method{BIC}{angmcmc}(object, burnin = 1/3, thin = 1, ...)
 }
@@ -15,6 +15,9 @@
 \item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
 
 \item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+
+\item{k}{numeric, the \emph{penalty} per parameter to be used; the
+    default \code{k = 2} is the classical AIC.}
 
 \item{...}{optionally more fitted model objects.}
 }
@@ -27,7 +30,7 @@ AIC and BIC for angmcmc objects
 \details{
 Let \eqn{\hat{L}} be the maximum value of the likelihood function for the model, \eqn{m} be the number of
 estimated parameters in the model and \eqn{n} be the number of data points. Then AIC and BIC are defined as
-\eqn{AIC = -2 \log \hat{L} + 2m} and \eqn{BIC = -2 \log \hat{L} + m \log(n)}.
+\eqn{AIC = -2 \log \hat{L} + mk} and \eqn{BIC = -2 \log \hat{L} + m \log(n)}.
 
 \eqn{\hat{L}} is estimated by the sample maximum obtained from the MCMC realizations.
 }

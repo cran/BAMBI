@@ -43,7 +43,7 @@
 #' fit.vm.step.15 <- fit_stepwise_univariate(wind, "vm", start_ncomp = 1,
 #'                                           max_ncomp = 3, n.iter = 15,
 #'                                           ncores = 1)
-#' (fit.vm.best.15 <- fit.vm.step.15$fit.best)
+#' (fit.vm.best.15 <- bestmodel(fit.vm.step.15))
 #' densityplot1d(fit.vm.best.15)
 #'
 #' @export
@@ -150,7 +150,7 @@ fit_stepwise_univariate <- function(data, model, fn = mean,  start_ncomp=1, max_
 #' fit.vmsin.step.15 <- fit_stepwise_bivariate(tim8, "vmsin", start_ncomp = 3,
 #'                                             max_ncomp = 5, n.iter = 15,
 #'                                             ncores = 1)
-#' (fit.vmsin.best.15 <- fit.vmsin.step.15$fit.best)
+#' (fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15))
 #' contour(fit.vmsin.best.15)
 #'
 #' @export
@@ -213,4 +213,27 @@ fit_stepwise_bivariate <- function(data, model, fn = mean, start_ncomp = 1, max_
   class(result) <- "stepfit"
 
   result
+}
+
+
+#' Extracting angmcmc object corresponding to the best fitted model in stepwise fits
+#'
+#' @param step_object stepwise fitted object (output of \code{\link{fit_stepwise_univariate}}
+#' or \code{\link{fit_stepwise_bivariate}}).
+#'
+#' @return Returns an angmcmc object corresponding to the the best fitted model in step_object.
+#'
+#' @examples
+#' # illustration only - more iterations needed for convergence
+#' fit.vmsin.step.15 <- fit_stepwise_bivariate(tim8, "vmsin", start_ncomp = 3,
+#'                                             max_ncomp = 5, n.iter = 15,
+#'                                             ncores = 1)
+#' fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15)
+#' fit.vmsin.best.15
+#'
+#' @export
+
+bestmodel <- function(step_object) {
+  if(class(step_object) != "stepfit") stop("\'step_object\' is not a stepwise fitted object")
+  step_object$fit.best
 }

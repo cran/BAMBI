@@ -191,13 +191,6 @@ dwnormmix <- function(x, kappa, mu, pmix, int.displ)
 #' @param epsilon,L  tuning parameters for HMC; ignored if \code{method = "rwmh"}. \code{epsilon} (step-size) is a quantity in
 #' \eqn{[0, 1)} and \code{L} (leapfrog steps) is a positive integer.
 #'
-#' @usage
-#' fit_wnormmix(data, ncomp, start_par, method = "hmc",
-#'              epsilon = 0.07, L = 10, epsilon.random = TRUE,
-#'              L.random = FALSE, propscale = rep(0.01, 2),
-#'              n.iter = 1e4, int.displ, gam.loc = 0,
-#'              gam.scale = 1000, autotune = FALSE, iter.tune=10,
-#'              ncores, show.progress = TRUE)
 #' @return returns an angular MCMC object.
 #'
 #' @details
@@ -220,7 +213,7 @@ dwnormmix <- function(x, kappa, mu, pmix, int.displ)
 
 fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=10, epsilon.random=TRUE,
                          L.random=FALSE, propscale = rep(0.01, 2), n.iter=1e4, int.displ, gam.loc=0, gam.scale=1000,
-                         autotune = FALSE, iter.tune=10, ncores, show.progress = TRUE)
+                         pmix.alpha = 1/2, autotune = FALSE, iter.tune=10, ncores, show.progress = TRUE)
 {
 
   if(!(mode(data) %in% c("numeric", "list"))) stop("non-compatible data")
@@ -282,7 +275,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
   starting$l.c.uniwnorm <- as.numeric(log_const_uniwnorm_all(starting$par.mat))
   starting$llik <- llik_uniwnorm_full(data.rad, starting$par.mat, starting$pi.mix,
                                       starting$l.c.uniwnorm, omega.2pi.1d, ncores)
-  starting$lprior <- sum(ldgamanum(starting$par.mat[1,], 0, 1000))
+  starting$lprior <- sum((pmix.alpha-1) * log(starting$pi.mix)) + sum(ldgamanum(starting$par.mat[1,], gam.loc, gam.scale))
   starting$lpd <- starting$llik + starting$lprior
 
   par.mat.all <- array(0, dim = c(2, ncomp, n.iter+1))
@@ -465,7 +458,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
         par.mat.prop <- q
         l.c.uniwnorm.prop <- log_const_uniwnorm_all(par.mat.prop)
 
-        lprior.prop <- sum(ldgamanum(q[1,], gam.loc, gam.scale))
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1,], gam.loc, gam.scale))
 
         llik.prop <- llik_uniwnorm_full(data.rad, q, pi.mix.1, l.c.uniwnorm.prop, omega.2pi.1d, ncores)
 
@@ -540,7 +533,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
       lprior_old <- MC$lprior
 
       llik_prop <- llik_uniwnorm_full(data.rad, prop.mat, pi.mix.1, l.c.uniwnorm.prop, omega.2pi.1d, ncores)
-      lprior_prop <- sum(ldgamanum(k.1.prop, 0, 1000))
+      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(k.1.prop, gam.loc, gam.scale))
 
       lpd_old <- llik_old + lprior_old
       lpd_prop <- llik_prop + lprior_prop
@@ -639,7 +632,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
         post.wt <- mem_p_uniwnorm(data.rad, par.mat.old, pi.mix.old, l.c.uniwnorm.old, omega.2pi.1d, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp) #vector of component sizes
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_uniwnorm_full(data.rad, par.mat.old, pi.mix.1, l.c.uniwnorm.old, omega.2pi.1d, ncores)
       }
 
@@ -779,7 +772,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
         par.mat.prop <- q
         l.c.uniwnorm.prop <- log_const_uniwnorm_all(par.mat.prop)
 
-        lprior.prop <- sum(ldgamanum(q[1,], gam.loc, gam.scale))
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1,], gam.loc, gam.scale))
 
         llik.prop <- llik_uniwnorm_full(data.rad, q, pi.mix.1, l.c.uniwnorm.prop, omega.2pi.1d, ncores)
 
@@ -849,7 +842,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
         post.wt <- mem_p_uniwnorm(data.rad, par.mat.old, pi.mix.old, l.c.uniwnorm.old, omega.2pi.1d, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp) #vector of component sizes
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_uniwnorm_full(data.rad, par.mat.old, pi.mix.1, l.c.uniwnorm.old, omega.2pi.1d, ncores)
       }
 
@@ -869,7 +862,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
       lprior_old <- MC$lprior
 
       llik_prop <- llik_uniwnorm_full(data.rad, prop.mat, pi.mix.1, l.c.uniwnorm.prop, omega.2pi.1d, ncores)
-      lprior_prop <- sum(ldgamanum(k.1.prop, 0, 1000))
+      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(k.1.prop, gam.loc, gam.scale))
 
       lpd_old <- llik_old + lprior_old
       lpd_prop <- llik_prop + lprior_prop
@@ -973,6 +966,7 @@ fit_wnormmix <- function(data, ncomp, start_par, method="hmc", epsilon=0.07, L=1
                  "epsilon.random" = epsilon.random, "epsilon" = epsilon_ave,
                  "L.random" = L.random, "L" = L_ave, "type" = "uni", "omega.2pi.1d" = omega.2pi.1d,
                  "propscale.final" = propscale_final, "data" = data.rad, "int.displ" = int.displ,
+                 "gam.loc" = gam.loc, "gam.scale" = gam.scale, "pmix.alpha" = pmix.alpha,
                  "n.data" = n.data, "ncomp" = ncomp, "n.iter" = n.iter)
 
   class(result) <- "angmcmc"

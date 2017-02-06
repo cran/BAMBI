@@ -32,7 +32,7 @@ Density and random deviates from an angmcmc object
 }
 \details{
 To estimate the mixture density, first the parameter vector \eqn{\eta} is estimated
-by applying \code{fn} on the MCMC samples, yielding the (consistent) Bayes estimate \eqn{\hat{\eta}}. Then the mixture density
+by applying \code{fn} on the MCMC samples (using the function \link{pointest}), yielding the (consistent) Bayes estimate \eqn{\hat{\eta}}. Then the mixture density
 \eqn{f(x|\eta)} at any point \eqn{x} is (consistently) estimated by \eqn{f(x|\hat{\eta})}.
 
 The random deviates are generated from the estimated mixture density \eqn{f(x|\hat{\eta})}.

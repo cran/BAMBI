@@ -253,6 +253,8 @@ dvmsinmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 #' @param n.iter number of iterations for the Markov Chain.
 #' @param gam.loc,gam.scale location and scale (hyper-) parameters for the gamma prior for \code{kappa1} and \code{kappa2}. See
 #' \link{dgamma}. Defaults are \code{gam.loc = 0, gam.scale = 1000} that makes the prior non-informative.
+#' @param pmix.alpha concentration parameter(s) for the Dirichlet prior for \code{pmix}. Must either be a positive real number, or a vector
+#' with positive entries and of the same size as \code{pmix}. The default is 1/2 which corresponds to the Jeffreys prior.
 #' @param norm.var variance (hyper-) parameter in the normal prior for \code{kappa3}. (Prior mean is zero).
 #' Default is 1000 that makes the prior non-informative.
 #' @param  autotune logical. Should the Markov chain auto-tune the parameters (\code{epsilon} in HMC and
@@ -276,13 +278,6 @@ dvmsinmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 #' If the acceptance rate drops below 5\% after 100 or more HMC iterations, \code{epsilon} is automatically lowered, and the
 #' Markov chain is restarted at the current parameter values.
 #'
-#' @usage
-#' fit_vmsinmix(data, ncomp, start_par = list(), method="hmc",
-#'              epsilon = 0.01, L = 10, epsilon.random = TRUE,
-#'              L.random = FALSE, propscale = rep(0.01, 5),
-#'              n.iter = 500, gam.loc = 0, gam.scale = 1000,
-#'              norm.var = 1000, autotune = FALSE,
-#'              iter.tune = 10, ncores, show.progress = TRUE)
 #' @return returns an angmcmc object.
 #'
 #' @examples
@@ -294,7 +289,7 @@ dvmsinmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 #' @export
 
 fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=0.01, L=10, epsilon.random=TRUE,
-                         L.random=FALSE, propscale = rep(0.01, 5), n.iter=500, gam.loc=0, gam.scale=1000,
+                         L.random=FALSE, propscale = rep(0.01, 5), n.iter=500, gam.loc=0, gam.scale=1000, pmix.alpha = 1/2,
                          norm.var=1000, autotune = FALSE, iter.tune = 10, ncores, show.progress = TRUE) {
 
   if(is.null(dim(data)) | !(mode(data) %in% c("list", "numeric") && ncol(data) == 2)) stop("non-compatible data")
@@ -351,7 +346,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
   starting$par.mat[abs(starting$par.mat) >= kappa_upper/2] <- kappa_upper/2
   starting$l.c.vmsin <- as.numeric(log_const_vmsin_all(starting$par.mat))
   starting$llik <- llik_vmsin_full(data.rad, starting$par.mat, starting$pi.mix, starting$l.c.vmsin, ncores)
-  starting$lprior <- sum(ldgamanum(starting$par.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((starting$par.mat[3,]/norm.var)^2)
+  starting$lprior <- sum((pmix.alpha-1)*log(starting$pi.mix)) + sum(ldgamanum(starting$par.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((starting$par.mat[3,]/norm.var)^2)
   starting$lpd <- starting$llik + starting$lprior
 
   par.mat.all <- array(0, dim = c(5, ncomp, n.iter+1))
@@ -563,7 +558,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
         par.mat.prop <- q
         l.c.vmsin.prop <- log_const_vmsin_all(par.mat.prop)
 
-        lprior.prop <- sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
 
         llik.prop <- llik_vmsin_full(data.rad, q, pi.mix.1, l.c.vmsin.prop, ncores)
 
@@ -646,7 +641,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
       llik_prop <- llik_vmsin_full(data.rad, prop.mat, pi.mix.1, l.c.vmsin.prop, ncores)
 
       lprior_old <- MC$lprior
-      lprior_prop <- sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
+      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
 
       post.omg_old <- llik_old + lprior_old
       post.omg_prop <- llik_prop + lprior_prop
@@ -753,7 +748,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
         post.wt <- mem_p_sin(data.rad, par.mat.old, pi.mix.old, l.c.vmsin.old, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp)
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_vmsin_full(data.rad, par.mat.old, pi.mix.1, l.c.vmsin.old, ncores)
       }
 
@@ -919,7 +914,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
         par.mat.prop <- q
         l.c.vmsin.prop <- log_const_vmsin_all(par.mat.prop)
 
-        lprior.prop <- sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
 
         llik.prop <- llik_vmsin_full(data.rad, q, pi.mix.1, l.c.vmsin.prop, ncores)
 
@@ -991,7 +986,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
         post.wt <- mem_p_sin(data.rad, par.mat.old, pi.mix.old, l.c.vmsin.old, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp)
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_vmsin_full(data.rad, par.mat.old, pi.mix.1, l.c.vmsin.old, ncores)
       }
 
@@ -1015,7 +1010,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
       llik_prop <- llik_vmsin_full(data.rad, prop.mat, pi.mix.1, l.c.vmsin.prop, ncores)
 
       lprior_old <- MC$lprior
-      lprior_prop <- sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
+      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
 
       post.omg_old <- llik_old + lprior_old
       post.omg_prop <- llik_prop + lprior_prop
@@ -1125,6 +1120,7 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
                  "epsilon.random" = epsilon.random, "epsilon" = epsilon_ave,
                  "L.random" = L.random, "L" = L_ave,  "type" = "bi",
                  "propscale.final" = propscale_final, "data" = data.rad,
+                 "gam.loc" = gam.loc, "gam.scale" = gam.scale, "pmix.alpha" = pmix.alpha, "norm.var" = norm.var,
                  "n.data" = n.data, "ncomp" = ncomp, "n.iter" = n.iter)
   class(result) <- "angmcmc"
 

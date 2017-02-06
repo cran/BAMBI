@@ -240,13 +240,6 @@ dvmcosmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 #' @param gam.loc,gam.scale location and scale (hyper-) parameters for the gamma prior for \code{kappa1} and \code{kappa2}. See
 #' \link{dgamma}. Defaults are \code{gam.loc = 0, gam.scale = 1000} that makes the prior non-informative.
 #'
-#' @usage
-#' fit_vmcosmix(data, ncomp, start_par = list(), method = "hmc",
-#'              epsilon = 0.01, L = 10, epsilon.random = TRUE,
-#'              L.random = FALSE, propscale = rep(0.01, 5), n.iter = 500,
-#'              gam.loc = 0, gam.scale = 1000, norm.var = 1000,
-#'              autotune = FALSE, iter.tune = 10, ncores, show.progress = TRUE)
-#'
 #' @return returns an angmcmc object.
 #'
 #' @details
@@ -268,7 +261,7 @@ dvmcosmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 #' @export
 
 fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=0.01, L=10, epsilon.random=TRUE,
-                         L.random=FALSE, propscale = rep(0.01, 5), n.iter=500, gam.loc=0, gam.scale=1000,
+                         L.random=FALSE, propscale = rep(0.01, 5), n.iter=500, gam.loc=0, gam.scale=1000, pmix.alpha = 1/2,
                          norm.var=1000, autotune = FALSE, iter.tune=10, ncores, show.progress = TRUE)
 {
 
@@ -329,7 +322,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
   # starting$par.mat[starting$par.mat <= -7] <- -7
   starting$l.c.vmcos <- as.numeric(log_const_vmcos_all(starting$par.mat, sobol_grid, ncores))
   starting$llik <- llik_vmcos_full(data.rad, starting$par.mat, starting$pi.mix, starting$l.c.vmcos, ncores)
-  starting$lprior <- sum(ldgamanum(starting$par.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((starting$par.mat[3,]/norm.var)^2)
+  starting$lprior <- sum((pmix.alpha-1) * log(starting$pi.mix)) + sum(ldgamanum(starting$par.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((starting$par.mat[3,]/norm.var)^2)
   starting$lpd <- starting$llik + starting$lprior
 
   par.mat.all <- array(0, dim = c(5, ncomp, n.iter+1))
@@ -531,7 +524,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
 
         l.c.vmcos.prop <- log_const_vmcos_all(par.mat.prop, sobol_grid, ncores)
 
-        lprior.prop <- sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
 
         llik.prop <- llik_vmcos_full(data.rad, q, pi.mix.1, l.c.vmcos.prop, ncores)
 
@@ -614,7 +607,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
       llik_prop <- llik_vmcos_full(data.rad, prop.mat, pi.mix.1, l.c.vmcos.prop, ncores)
 
       lprior_old <- MC$lprior
-      lprior_prop <- sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
+      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
 
       post.omg_old <- llik_old + lprior_old
       post.omg_prop <- llik_prop + lprior_prop
@@ -720,7 +713,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
         post.wt <- mem_p_cos(data.rad, par.mat.old, pi.mix.old, l.c.vmcos.old, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp)
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_vmcos_full(data.rad, par.mat.old, pi.mix.1, l.c.vmcos.old, ncores)
       }
 
@@ -878,7 +871,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
         par.mat.prop <- q
         l.c.vmcos.prop <- log_const_vmcos_all(par.mat.prop, sobol_grid, ncores)
 
-        lprior.prop <- sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
+        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
 
         llik.prop <- llik_vmcos_full(data.rad, q, pi.mix.1, l.c.vmcos.prop, ncores)
 
@@ -950,7 +943,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
         post.wt <- mem_p_cos(data.rad, par.mat.old, pi.mix.old, l.c.vmcos.old, ncores)
         clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
         n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp)
-        pi.mix.1 <- as.numeric(rdirichlet(1, (1 + n.clus))) #new mixture proportions
+        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
         llik_new.pi <- llik_vmcos_full(data.rad, par.mat.old, pi.mix.1, l.c.vmcos.old, ncores)
       }
 
@@ -974,7 +967,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
       llik_prop <- llik_vmcos_full(data.rad, prop.mat, pi.mix.1, l.c.vmcos.prop, ncores)
 
       lprior_old <- MC$lprior
-      lprior_prop <- sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
+      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
 
       post.omg_old <- llik_old + lprior_old
       post.omg_prop <- llik_prop + lprior_prop
@@ -1084,6 +1077,7 @@ fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
                  "epsilon.random" = epsilon.random, "epsilon" = epsilon_ave,
                  "L.random" = L.random, "L" = L_ave,  "type" = "bi",
                  "propscale.final" = propscale_final, "data" = data.rad,
+                 "gam.loc" = gam.loc, "gam.scale" = gam.scale, "pmix.alpha" = pmix.alpha, "norm.var" = norm.var,
                  "n.data" = n.data, "ncomp" = ncomp, "n.iter" = n.iter)
   class(result) <- "angmcmc"
 

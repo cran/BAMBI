@@ -5,10 +5,10 @@
 \title{Fitting bivariate von Mises cosine model mixtures using MCMC}
 \usage{
 fit_vmcosmix(data, ncomp, start_par = list(), method = "hmc",
-             epsilon = 0.01, L = 10, epsilon.random = TRUE,
-             L.random = FALSE, propscale = rep(0.01, 5), n.iter = 500,
-             gam.loc = 0, gam.scale = 1000, norm.var = 1000,
-             autotune = FALSE, iter.tune = 10, ncores, show.progress = TRUE)
+  epsilon = 0.01, L = 10, epsilon.random = TRUE, L.random = FALSE,
+  propscale = rep(0.01, 5), n.iter = 500, gam.loc = 0, gam.scale = 1000,
+  pmix.alpha = 1/2, norm.var = 1000, autotune = FALSE, iter.tune = 10,
+  ncores, show.progress = TRUE)
 }
 \arguments{
 \item{data}{vector of observations. If outside, the values are transformed into the scale \eqn{[0, 2\pi)}.}
@@ -38,6 +38,9 @@ for \eqn{\kappa_1, \kappa_2, \kappa_3, \mu_1} and \eqn{\mu_2} respectively. Igno
 
 \item{gam.loc, gam.scale}{location and scale (hyper-) parameters for the gamma prior for \code{kappa1} and \code{kappa2}. See
 \link{dgamma}. Defaults are \code{gam.loc = 0, gam.scale = 1000} that makes the prior non-informative.}
+
+\item{pmix.alpha}{concentration parameter(s) for the Dirichlet prior for \code{pmix}. Must either be a positive real number, or a vector
+with positive entries and of the same size as \code{pmix}. The default is 1/2 which corresponds to the Jeffreys prior.}
 
 \item{norm.var}{variance (hyper-) parameter in the normal prior for \code{kappa3}. (Prior mean is zero).
 Default is 1000 that makes the prior non-informative.}

@@ -285,7 +285,7 @@ summary.angmcmc <- function(object, burnin = 1/3, thin = 1, ...)
 #' @details
 #' Let \eqn{\hat{L}} be the maximum value of the likelihood function for the model, \eqn{m} be the number of
 #' estimated parameters in the model and \eqn{n} be the number of data points. Then AIC and BIC are defined as
-#' \eqn{AIC = -2 \log \hat{L} + 2m} and \eqn{BIC = -2 \log \hat{L} + m \log(n)}.
+#' \eqn{AIC = -2 \log \hat{L} + mk} and \eqn{BIC = -2 \log \hat{L} + m \log(n)}.
 #'
 #' \eqn{\hat{L}} is estimated by the sample maximum obtained from the MCMC realizations.
 #'
@@ -298,7 +298,7 @@ summary.angmcmc <- function(object, burnin = 1/3, thin = 1, ...)
 #'
 #' @export
 
-AIC.angmcmc <- function(object, burnin = 1/3, thin = 1, ...)
+AIC.angmcmc <- function(object, burnin = 1/3, thin = 1, k = 2, ...)
 {
   if(!is.null(object$fixed.label)) {
     if(missing(burnin)) burnin <- object$burnin
@@ -314,7 +314,7 @@ AIC.angmcmc <- function(object, burnin = 1/3, thin = 1, ...)
 
   llik <- max(object$llik[final_iter])
   npar <- prod(dim(object$par.value)[1:2]) - 1
-  aic <- 2 * (npar - llik)
+  aic <- k * npar - 2 * llik
   aic
 }
 
@@ -516,14 +516,14 @@ WAIC <- function(object, form = 1, burnin = 1/3, thin = 1, ...)
 
     if(ncomp > 1) {
       all_den_mat <- (sapply(1:length(final_iter),
-                                             function(iter) do.call(paste0("d", object$model, "mix"),
-                                                                    addtolist(list_by_row(all_par[ , , iter], 1:ncomp),
-                                                                              x = object$data, int.displ = int.displ) )))
+                             function(iter) do.call(paste0("d", object$model, "mix"),
+                                                    addtolist(list_by_row(all_par[ , , iter], 1:ncomp),
+                                                              x = object$data, int.displ = int.displ) )))
     } else {
       all_den_mat <- (sapply(1:length(final_iter),
-                                             function(iter) do.call(paste0("d", object$model),
-                                                                    addtolist(as.list(all_par[-1 , iter]),
-                                                                              x = object$data, int.displ = int.displ) )))
+                             function(iter) do.call(paste0("d", object$model),
+                                                    addtolist(as.list(all_par[-1 , iter]),
+                                                              x = object$data, int.displ = int.displ) )))
     }
 
   }
@@ -555,7 +555,7 @@ WAIC <- function(object, form = 1, burnin = 1/3, thin = 1, ...)
 #'
 #' @details
 #' To estimate the mixture density, first the parameter vector \eqn{\eta} is estimated
-#' by applying \code{fn} on the MCMC samples, yielding the (consistent) Bayes estimate \eqn{\hat{\eta}}. Then the mixture density
+#' by applying \code{fn} on the MCMC samples (using the function \link{pointest}), yielding the (consistent) Bayes estimate \eqn{\hat{\eta}}. Then the mixture density
 #' \eqn{f(x|\eta)} at any point \eqn{x} is (consistently) estimated by \eqn{f(x|\hat{\eta})}.
 #'
 #' The random deviates are generated from the estimated mixture density \eqn{f(x|\hat{\eta})}.
@@ -574,9 +574,10 @@ WAIC <- function(object, form = 1, burnin = 1/3, thin = 1, ...)
 d_fitted <- function(x, object, fn = mean, burnin = 1/3, thin = 1)
 {
   if(class(object) != "angmcmc") stop("object must be an angmcmc object")
-  if((length(dim(x)) < 2 && length(x) != 2) || (length(dim(x)) == 2 && tail(dim(x), 1) != 2)
-     || (length(dim(x)) > 2)) stop("x must either be a bivariate vector or a two-column matrix")
-
+  if(object$type == "bi") {
+    if((length(dim(x)) < 2 && length(x) != 2) || (length(dim(x)) == 2 && tail(dim(x), 1) != 2)
+       || (length(dim(x)) > 2)) stop("x must either be a bivariate vector or a two-column matrix")
+  }
   if(missing(burnin)) {
     if(is.null(object$fixed.label)) burnin <- 1/3
     else burnin <- object$burnin
@@ -647,3 +648,51 @@ r_fitted <- function(n, object, fn = mean, burnin = 1/3, thin = 1)
 
 }
 
+
+#' Extract Log-Likelihood from angmcmc objects
+#' @inheritParams pointest
+#' @param fn function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean. Used for parameter estimatation.
+#' @param burnin initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1). Used for parameter estimatation.
+#' @param thin positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept. Used for parameter estimatation.
+#' @inheritParams stats::logLik
+#'
+#' @details In order to estimate the log likelihood for the model, first the parameter vector is estimated using \link{pointest},
+#' and then log the likelihood is calculated on the basis of the estimated parameter.
+#'
+#' The degrees of the likelihood function is the total number of free parameters estimated in the mixture models,
+#' which is equal to \eqn{6K - 1} for bivariate models (vmsin, vmcos and wnorm2), or \eqn{3K - 1} for univariate
+#' models (vm and wnorm), where \eqn{K} denotes the number of components in the mixture model.
+#'
+#' @return Returns an object of class \link{logLik}. This is a number (the estimated log likelihood) with attributes "df"
+#' (degrees of freedom) and "nobs" (number of observations).
+#'
+#' @examples
+#' # illustration only - more iterations needed for convergence
+#' fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
+#'                              ncores = 1)
+#' logLik(fit.vmsin.20)
+#' @export
+
+
+logLik.angmcmc <- function(object, fn = mean, burnin = 1/3, thin = 1, ...)
+{
+  if(class(object) != "angmcmc") stop("\"object\" must be an angmcmc object")
+  if(!is.null(object$fixed.label)) {
+    if(missing(burnin)) burnin <- object$burnin
+    if(missing(thin)) thin <- object$thin
+  }
+  if(burnin < 0 || burnin >= 1) stop("\"burnin\" must be in [0, 1)")
+  if(thin <= 0  || thin != as.integer(thin) ) stop("\"thin\" must be a positive integer")
+
+  all_den <- d_fitted(object$data, object, fn = fn, burnin = burnin, thin = thin)
+  llik <- sum(log(all_den))
+
+  if(object$type == "uni") df <- 3*object$ncomp - 1
+  else df <- 6*object$ncomp - 1
+
+  object_nobs <- object$n.data
+  result <- llik
+  attributes(result) <- list("df" = df, "nobs" = object_nobs)
+  class(result) <- "logLik"
+  result
+}

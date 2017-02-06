@@ -5,11 +5,10 @@
 \title{Fitting bivariate wrapped normal mixtures using MCMC}
 \usage{
 fit_wnorm2mix(data, ncomp, start_par = list(), method = "hmc",
-              epsilon = 0.005, L = 10, epsilon.random = TRUE,
-              L.random = FALSE, propscale = rep(0.01, 5),
-              n.iter = 500, int.displ, gam.loc = 0,
-              gam.scale = 1000, norm.var = 1000, autotune = FALSE,
-              iter.tune = 10, ncores, show.progress = TRUE)
+  epsilon = 0.005, L = 10, epsilon.random = TRUE, L.random = FALSE,
+  propscale = rep(0.01, 5), n.iter = 500, int.displ, gam.loc = 0,
+  gam.scale = 1000, norm.var = 1000, pmix.alpha = 1/2, autotune = FALSE,
+  iter.tune = 10, ncores, show.progress = TRUE)
 }
 \arguments{
 \item{data}{vector of observations. If outside, the values are transformed into the scale \eqn{[0, 2\pi)}.}
@@ -45,6 +44,9 @@ Allowed minimum and maximum are 1 and 5 respectively.}
 
 \item{norm.var}{variance (hyper-) parameter in the normal prior for \code{kappa3}. (Prior mean is zero).
 Default is 1000 that makes the prior non-informative.}
+
+\item{pmix.alpha}{concentration parameter(s) for the Dirichlet prior for \code{pmix}. Must either be a positive real number, or a vector
+with positive entries and of the same size as \code{pmix}. The default is 1/2 which corresponds to the Jeffreys prior.}
 
 \item{autotune}{logical. Should the Markov chain auto-tune the parameters (\code{epsilon} in HMC and
 \code{propscale} in RWMH) on the basis of acceptances in \code{iter.tune}? (The iterations used to tune the

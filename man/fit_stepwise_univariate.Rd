@@ -65,7 +65,7 @@ through the argument \code{model}).
 fit.vm.step.15 <- fit_stepwise_univariate(wind, "vm", start_ncomp = 1,
                                           max_ncomp = 3, n.iter = 15,
                                           ncores = 1)
-(fit.vm.best.15 <- fit.vm.step.15$fit.best)
+(fit.vm.best.15 <- bestmodel(fit.vm.step.15))
 densityplot1d(fit.vm.best.15)
 
 }
