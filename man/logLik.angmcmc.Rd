@@ -9,11 +9,11 @@
 \arguments{
 \item{object}{angular MCMC object.}
 
-\item{fn}{function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean. Used for parameter estimatation.}
+\item{fn}{function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean. Used for parameter estimation.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1). Used for parameter estimatation.}
+\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1). Used for parameter estimation.}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept. Used for parameter estimatation.}
+\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept. Used for parameter estimation.}
 
 \item{...}{some methods for this generic function require additional
    arguments.}
@@ -39,4 +39,3 @@ fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
                              ncores = 1)
 logLik(fit.vmsin.20)
 }
-

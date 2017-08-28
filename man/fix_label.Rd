@@ -36,4 +36,3 @@ fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
 fit.vmsin.20.fix <- fix_label(fit.vmsin.20)
 
 }
-

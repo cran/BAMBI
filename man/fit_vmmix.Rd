@@ -77,4 +77,3 @@ fit.vm.20 <- fit_vmmix(wind, ncomp = 3, n.iter =  20,
                        ncores = 1)
 fit.vm.20
 }
-

@@ -25,4 +25,3 @@ fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15)
 fit.vmsin.best.15
 
 }
-

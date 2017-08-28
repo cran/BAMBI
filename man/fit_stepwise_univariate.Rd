@@ -69,4 +69,3 @@ fit.vm.step.15 <- fit_stepwise_univariate(wind, "vm", start_ncomp = 1,
 densityplot1d(fit.vm.best.15)
 
 }
-

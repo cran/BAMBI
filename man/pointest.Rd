@@ -37,4 +37,3 @@ fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
 # estimate parameters by sample median
 (est_median <- pointest(fit.vmsin.20, fn = median))
 }
-

@@ -85,4 +85,3 @@ fit.wnorm2.15 <- fit_wnorm2mix(tim8, ncomp = 3, n.iter =  15,
 fit.wnorm2.15
 
 }
-

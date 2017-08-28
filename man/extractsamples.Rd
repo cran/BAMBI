@@ -43,4 +43,3 @@ extr_kappa1 <- extractsamples(fit.vmsin.20, "kappa1")
 extr_1 <- extractsamples(fit.vmsin.20, comp.label = 1)
 
 }
-

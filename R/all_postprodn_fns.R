@@ -651,9 +651,9 @@ r_fitted <- function(n, object, fn = mean, burnin = 1/3, thin = 1)
 
 #' Extract Log-Likelihood from angmcmc objects
 #' @inheritParams pointest
-#' @param fn function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean. Used for parameter estimatation.
-#' @param burnin initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1). Used for parameter estimatation.
-#' @param thin positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept. Used for parameter estimatation.
+#' @param fn function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean. Used for parameter estimation.
+#' @param burnin initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1). Used for parameter estimation.
+#' @param thin positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept. Used for parameter estimation.
 #' @inheritParams stats::logLik
 #'
 #' @details In order to estimate the log likelihood for the model, first the parameter vector is estimated using \link{pointest},

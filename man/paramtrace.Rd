@@ -38,4 +38,3 @@ paramtrace(fit.vmsin.20, "kappa1")
 paramtrace(fit.vmsin.20, comp.label = 1)
 
 }
-

@@ -82,4 +82,3 @@ fit.vmcos.20 <- fit_vmcosmix(tim8, ncomp = 3, n.iter =  20,
 fit.vmcos.20
 
 }
-

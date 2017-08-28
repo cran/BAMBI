@@ -81,4 +81,3 @@ fit.wnorm.20 <- fit_wnormmix(wind, ncomp = 3, n.iter =  20,
                              ncores = 1)
 fit.wnorm.20
 }
-

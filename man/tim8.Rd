@@ -20,4 +20,3 @@ the DSSP software on the PDB file for 8TIM to get the backbone angles (in degree
 and then by converting all angles into radians.
 }
 \keyword{datasets}
-

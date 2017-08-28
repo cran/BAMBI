@@ -1,5 +1,4 @@
-
-3#' @useDynLib BAMBI
+#' @useDynLib BAMBI, .registration = TRUE
 #' @import stats
 #' @importFrom graphics contour hist plot points persp
 #' @importFrom grDevices colorRampPalette

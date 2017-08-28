@@ -38,4 +38,3 @@ fit.vm.20 <- fit_vmmix(wind, ncomp = 2, n.iter =  20,
 densityplot1d(fit.vm.20)
 
 }
-

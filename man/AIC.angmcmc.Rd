@@ -42,4 +42,3 @@ AIC(fit.vmsin.20)
 BIC(fit.vmsin.20)
 
 }
-

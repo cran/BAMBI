@@ -70,4 +70,3 @@ fit.vmsin.step.15 <- fit_stepwise_bivariate(tim8, "vmsin", start_ncomp = 3,
 contour(fit.vmsin.best.15)
 
 }
-

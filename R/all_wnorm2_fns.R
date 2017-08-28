@@ -6,12 +6,24 @@
 #' and \code{kappa3^2 < kappa1*kappa2}.
 #' @details
 #' The bivariate wrapped normal density at the point \eqn{x = (x_1, x_2)} is given by,
-#' \deqn{f(x) = \sqrt((\kappa_1 \kappa_2 - (\kappa_3)^2) / (2\pi)) \sum \exp(-1/2 * (\kappa_1 (T_1)^2 + \kappa_2 (T_2)^2 + \kappa_3 (T_1) (T_2)) )}
+#' \deqn{f(x) = \sqrt((\kappa_1 \kappa_2 - (\kappa_3)^2)) / (2\pi) \sum \exp(-1/2 * (\kappa_1 (T_1)^2 + \kappa_2 (T_2)^2 + 2 \kappa_3 (T_1) (T_2)) )}
 #' where
 #' \deqn{T_1 = T_1(x, \mu, \omega) = (x_1 - \mu_1(2\pi\omega_1))}
 #' \deqn{T_2 = T_2(x, \mu, \omega) = (x_2 - \mu_1(2\pi\omega_2))}
 #' the sum extends over all pairs of integers \eqn{\omega = (\omega_1, \omega_2)},
 #' and is approximated by a sum over \eqn{(\omega_1, \omega_2)} in \eqn{\{-M, -M+1, ..., M-1, M \}^2} if \code{int.displ = } \eqn{M}.
+#'
+#' Note that above density is essentially the "wrapped" version of a bivariate normal density with mean
+#' \deqn{\mu = (\mu_1, \mu_2)}
+#' and dispersion matrix  \eqn{\Sigma = \Delta^{-1}}, where
+#'
+#' \tabular{lrrr}{
+#'                \tab \eqn{\kappa_1} \tab  \eqn{ } \tab \eqn{\kappa_3} \cr
+#' \eqn{\Delta =} \tab \eqn{ }        \tab  \eqn{ } \tab \eqn{ } \cr
+#'                \tab \eqn{\kappa_3} \tab  \eqn{ } \tab  \eqn{\kappa_2}.
+#' }
+#'
+#'
 #' @return \code{dwnorm2} gives the density  and \code{rwnorm2} generates random deviates.
 #'
 #' @examples

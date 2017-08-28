@@ -20,4 +20,3 @@ Canada during October 1-10, 2016 (obtained from Environment Canada website). The
 during October 4-7, which caused significant fluctuations among the wind directions.
 }
 \keyword{datasets}
-

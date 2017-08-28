@@ -45,4 +45,3 @@ densityplot2d(fit.vmsin.20)
 densityplot2d(fit.vmsin.20, theta = 45, phi = 45)
 
 }
-

@@ -30,4 +30,3 @@ lpdtrace(fit.vmsin.20)
 lpdtrace(fit.vmsin.20, use.llik = TRUE)
 
 }
-

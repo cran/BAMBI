@@ -49,4 +49,3 @@ fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
 WAIC(fit.vmsin.20)
 
 }
-
