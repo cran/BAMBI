@@ -42,6 +42,51 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// change_labs
+arma::uvec change_labs(arma::uvec orig, arma::uvec rand_perm);
+RcppExport SEXP _BAMBI_change_labs(SEXP origSEXP, SEXP rand_permSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::uvec >::type orig(origSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type rand_perm(rand_permSEXP);
+    rcpp_result_gen = Rcpp::wrap(change_labs(orig, rand_perm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calc_corr_tau_2
+double calc_corr_tau_2(arma::mat samp_mat);
+RcppExport SEXP _BAMBI_calc_corr_tau_2(SEXP samp_matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type samp_mat(samp_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_corr_tau_2(samp_mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calc_corr_tau_1
+double calc_corr_tau_1(arma::mat samp_mat);
+RcppExport SEXP _BAMBI_calc_corr_tau_1(SEXP samp_matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type samp_mat(samp_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_corr_tau_1(samp_mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// calc_corr_fl
+double calc_corr_fl(arma::mat samp_mat);
+RcppExport SEXP _BAMBI_calc_corr_fl(SEXP samp_matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type samp_mat(samp_matSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_corr_fl(samp_mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // const_univm
 double const_univm(double k);
 RcppExport SEXP _BAMBI_const_univm(SEXP kSEXP) {
@@ -684,6 +729,49 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// vmcos_var_corr_anltc
+List vmcos_var_corr_anltc(double k1, double k2, double k3);
+RcppExport SEXP _BAMBI_vmcos_var_corr_anltc(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    rcpp_result_gen = Rcpp::wrap(vmcos_var_corr_anltc(k1, k2, k3));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vmcos_var_corr_mc
+List vmcos_var_corr_mc(double k1, double k2, double k3, arma::mat uni_rand, int ncores);
+RcppExport SEXP _BAMBI_vmcos_var_corr_mc(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
+    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(vmcos_var_corr_mc(k1, k2, k3, uni_rand, ncores));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vmcos_var_cor_singlepar_cpp
+List vmcos_var_cor_singlepar_cpp(double k1, double k2, double k3, arma::mat uni_rand, int ncores);
+RcppExport SEXP _BAMBI_vmcos_var_cor_singlepar_cpp(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
+    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(vmcos_var_cor_singlepar_cpp(k1, k2, k3, uni_rand, ncores));
+    return rcpp_result_gen;
+END_RCPP
+}
 // const_vmsin
 double const_vmsin(double k1, double k2, double lambda);
 RcppExport SEXP _BAMBI_const_vmsin(SEXP k1SEXP, SEXP k2SEXP, SEXP lambdaSEXP) {
@@ -882,6 +970,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// llik_vmsin_one_comp
+double llik_vmsin_one_comp(arma::mat data, arma::vec par_vec, double log_c, int ncores);
+RcppExport SEXP _BAMBI_llik_vmsin_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP log_cSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
+    Rcpp::traits::input_parameter< double >::type log_c(log_cSEXP);
+    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(llik_vmsin_one_comp(data, par_vec, log_c, ncores));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grad_vmsin_one_comp
+arma::vec grad_vmsin_one_comp(arma::mat data, arma::vec par_vec, int ncores);
+RcppExport SEXP _BAMBI_grad_vmsin_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
+    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(grad_vmsin_one_comp(data, par_vec, ncores));
+    return rcpp_result_gen;
+END_RCPP
+}
 // grad_vmsin_all_comp
 arma::mat grad_vmsin_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi, int ncores);
 RcppExport SEXP _BAMBI_grad_vmsin_all_comp(SEXP dataSEXP, SEXP par_matSEXP, SEXP piSEXP, SEXP ncoresSEXP) {
@@ -922,6 +1037,49 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
     rcpp_result_gen = Rcpp::wrap(vmsinmix_manyx(x, par, pi, log_c_von));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vmsin_var_corr_anltc
+List vmsin_var_corr_anltc(double k1, double k2, double lambda);
+RcppExport SEXP _BAMBI_vmsin_var_corr_anltc(SEXP k1SEXP, SEXP k2SEXP, SEXP lambdaSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    rcpp_result_gen = Rcpp::wrap(vmsin_var_corr_anltc(k1, k2, lambda));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vmsin_var_corr_mc
+List vmsin_var_corr_mc(double k1, double k2, double k3, arma::mat uni_rand, int ncores);
+RcppExport SEXP _BAMBI_vmsin_var_corr_mc(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
+    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(vmsin_var_corr_mc(k1, k2, k3, uni_rand, ncores));
+    return rcpp_result_gen;
+END_RCPP
+}
+// vmsin_var_cor_singlepar_cpp
+List vmsin_var_cor_singlepar_cpp(double k1, double k2, double k3, arma::mat uni_rand, int ncores);
+RcppExport SEXP _BAMBI_vmsin_var_cor_singlepar_cpp(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
+    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
+    rcpp_result_gen = Rcpp::wrap(vmsin_var_cor_singlepar_cpp(k1, k2, k3, uni_rand, ncores));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1114,4 +1272,104 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(dwnorm2_manyx_manypar(x, k1, k2, k3, mu1, mu2, omega_2pi));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_BAMBI_rowVars", (DL_FUNC) &_BAMBI_rowVars, 1},
+    {"_BAMBI_par_mat_permute", (DL_FUNC) &_BAMBI_par_mat_permute, 2},
+    {"_BAMBI_cID", (DL_FUNC) &_BAMBI_cID, 3},
+    {"_BAMBI_change_labs", (DL_FUNC) &_BAMBI_change_labs, 2},
+    {"_BAMBI_calc_corr_tau_2", (DL_FUNC) &_BAMBI_calc_corr_tau_2, 1},
+    {"_BAMBI_calc_corr_tau_1", (DL_FUNC) &_BAMBI_calc_corr_tau_1, 1},
+    {"_BAMBI_calc_corr_fl", (DL_FUNC) &_BAMBI_calc_corr_fl, 1},
+    {"_BAMBI_const_univm", (DL_FUNC) &_BAMBI_const_univm, 1},
+    {"_BAMBI_log_const_univm_all", (DL_FUNC) &_BAMBI_log_const_univm_all, 1},
+    {"_BAMBI_ldunivmnum", (DL_FUNC) &_BAMBI_ldunivmnum, 2},
+    {"_BAMBI_dunivm_manyx_onepar", (DL_FUNC) &_BAMBI_dunivm_manyx_onepar, 3},
+    {"_BAMBI_dunivm_manyx_manypar", (DL_FUNC) &_BAMBI_dunivm_manyx_manypar, 3},
+    {"_BAMBI_dunivm_onex_manypar", (DL_FUNC) &_BAMBI_dunivm_onex_manypar, 3},
+    {"_BAMBI_runivm_onepar", (DL_FUNC) &_BAMBI_runivm_onepar, 3},
+    {"_BAMBI_runivm_manypar", (DL_FUNC) &_BAMBI_runivm_manypar, 2},
+    {"_BAMBI_univmmix", (DL_FUNC) &_BAMBI_univmmix, 4},
+    {"_BAMBI_univmmix_manyx", (DL_FUNC) &_BAMBI_univmmix_manyx, 4},
+    {"_BAMBI_mem_p_univm", (DL_FUNC) &_BAMBI_mem_p_univm, 5},
+    {"_BAMBI_llik_univm_full", (DL_FUNC) &_BAMBI_llik_univm_full, 5},
+    {"_BAMBI_grad_univm_all_comp", (DL_FUNC) &_BAMBI_grad_univm_all_comp, 4},
+    {"_BAMBI_l_const_uniwnorm", (DL_FUNC) &_BAMBI_l_const_uniwnorm, 1},
+    {"_BAMBI_const_uniwnorm", (DL_FUNC) &_BAMBI_const_uniwnorm, 1},
+    {"_BAMBI_log_const_uniwnorm_all", (DL_FUNC) &_BAMBI_log_const_uniwnorm_all, 1},
+    {"_BAMBI_lduniwnormnum", (DL_FUNC) &_BAMBI_lduniwnormnum, 3},
+    {"_BAMBI_duniwnorm_manyx_onepar", (DL_FUNC) &_BAMBI_duniwnorm_manyx_onepar, 4},
+    {"_BAMBI_duniwnorm_manyx_manypar", (DL_FUNC) &_BAMBI_duniwnorm_manyx_manypar, 4},
+    {"_BAMBI_duniwnorm_onex_manypar", (DL_FUNC) &_BAMBI_duniwnorm_onex_manypar, 4},
+    {"_BAMBI_uniwnormmix", (DL_FUNC) &_BAMBI_uniwnormmix, 5},
+    {"_BAMBI_uniwnormmix_manyx", (DL_FUNC) &_BAMBI_uniwnormmix_manyx, 5},
+    {"_BAMBI_mem_p_uniwnorm", (DL_FUNC) &_BAMBI_mem_p_uniwnorm, 6},
+    {"_BAMBI_llik_uniwnorm_full", (DL_FUNC) &_BAMBI_llik_uniwnorm_full, 6},
+    {"_BAMBI_grad_uniwnorm_all_comp", (DL_FUNC) &_BAMBI_grad_uniwnorm_all_comp, 5},
+    {"_BAMBI_BESSI0_C", (DL_FUNC) &_BAMBI_BESSI0_C, 1},
+    {"_BAMBI_const_vmcos_anltc", (DL_FUNC) &_BAMBI_const_vmcos_anltc, 3},
+    {"_BAMBI_const_vmcos_mc", (DL_FUNC) &_BAMBI_const_vmcos_mc, 5},
+    {"_BAMBI_const_vmcos", (DL_FUNC) &_BAMBI_const_vmcos, 5},
+    {"_BAMBI_d_const_vmcos_k1_anltc", (DL_FUNC) &_BAMBI_d_const_vmcos_k1_anltc, 3},
+    {"_BAMBI_d_const_vmcos_anltc", (DL_FUNC) &_BAMBI_d_const_vmcos_anltc, 3},
+    {"_BAMBI_d_const_vmcos_mc", (DL_FUNC) &_BAMBI_d_const_vmcos_mc, 5},
+    {"_BAMBI_d_const_vmcos", (DL_FUNC) &_BAMBI_d_const_vmcos, 3},
+    {"_BAMBI_log_const_vmcos_all", (DL_FUNC) &_BAMBI_log_const_vmcos_all, 3},
+    {"_BAMBI_ldcosnum", (DL_FUNC) &_BAMBI_ldcosnum, 3},
+    {"_BAMBI_dcos_onex_manypar", (DL_FUNC) &_BAMBI_dcos_onex_manypar, 7},
+    {"_BAMBI_dcos_manyx_onepar", (DL_FUNC) &_BAMBI_dcos_manyx_onepar, 7},
+    {"_BAMBI_dcos_manyx_manypar", (DL_FUNC) &_BAMBI_dcos_manyx_manypar, 7},
+    {"_BAMBI_rcos_onepar", (DL_FUNC) &_BAMBI_rcos_onepar, 7},
+    {"_BAMBI_rcos_manypar", (DL_FUNC) &_BAMBI_rcos_manypar, 6},
+    {"_BAMBI_mem_p_cos", (DL_FUNC) &_BAMBI_mem_p_cos, 5},
+    {"_BAMBI_llik_vmcos_full", (DL_FUNC) &_BAMBI_llik_vmcos_full, 5},
+    {"_BAMBI_grad_log_vmcos_one_comp_i", (DL_FUNC) &_BAMBI_grad_log_vmcos_one_comp_i, 5},
+    {"_BAMBI_grad_vmcos_all_comp", (DL_FUNC) &_BAMBI_grad_vmcos_all_comp, 5},
+    {"_BAMBI_vmcosmix", (DL_FUNC) &_BAMBI_vmcosmix, 5},
+    {"_BAMBI_vmcosmix_manyx", (DL_FUNC) &_BAMBI_vmcosmix_manyx, 4},
+    {"_BAMBI_vmcos_var_corr_anltc", (DL_FUNC) &_BAMBI_vmcos_var_corr_anltc, 3},
+    {"_BAMBI_vmcos_var_corr_mc", (DL_FUNC) &_BAMBI_vmcos_var_corr_mc, 5},
+    {"_BAMBI_vmcos_var_cor_singlepar_cpp", (DL_FUNC) &_BAMBI_vmcos_var_cor_singlepar_cpp, 5},
+    {"_BAMBI_const_vmsin", (DL_FUNC) &_BAMBI_const_vmsin, 3},
+    {"_BAMBI_d_const_vmsin_lambda", (DL_FUNC) &_BAMBI_d_const_vmsin_lambda, 3},
+    {"_BAMBI_d_const_vmsin_k1", (DL_FUNC) &_BAMBI_d_const_vmsin_k1, 3},
+    {"_BAMBI_d_const_vmsin_k2", (DL_FUNC) &_BAMBI_d_const_vmsin_k2, 3},
+    {"_BAMBI_d_const_vmsin", (DL_FUNC) &_BAMBI_d_const_vmsin, 1},
+    {"_BAMBI_log_const_vmsin_all", (DL_FUNC) &_BAMBI_log_const_vmsin_all, 1},
+    {"_BAMBI_ldsinnum", (DL_FUNC) &_BAMBI_ldsinnum, 3},
+    {"_BAMBI_dsin_onex_manypar", (DL_FUNC) &_BAMBI_dsin_onex_manypar, 6},
+    {"_BAMBI_dsin_manyx_onepar", (DL_FUNC) &_BAMBI_dsin_manyx_onepar, 6},
+    {"_BAMBI_dsin_manyx_manypar", (DL_FUNC) &_BAMBI_dsin_manyx_manypar, 6},
+    {"_BAMBI_rsin_onepar", (DL_FUNC) &_BAMBI_rsin_onepar, 7},
+    {"_BAMBI_rsin_manypar", (DL_FUNC) &_BAMBI_rsin_manypar, 6},
+    {"_BAMBI_mem_p_sin", (DL_FUNC) &_BAMBI_mem_p_sin, 5},
+    {"_BAMBI_llik_vmsin_full", (DL_FUNC) &_BAMBI_llik_vmsin_full, 5},
+    {"_BAMBI_llik_vmsin_one_comp", (DL_FUNC) &_BAMBI_llik_vmsin_one_comp, 4},
+    {"_BAMBI_grad_vmsin_one_comp", (DL_FUNC) &_BAMBI_grad_vmsin_one_comp, 3},
+    {"_BAMBI_grad_vmsin_all_comp", (DL_FUNC) &_BAMBI_grad_vmsin_all_comp, 4},
+    {"_BAMBI_vmsinmix", (DL_FUNC) &_BAMBI_vmsinmix, 5},
+    {"_BAMBI_vmsinmix_manyx", (DL_FUNC) &_BAMBI_vmsinmix_manyx, 4},
+    {"_BAMBI_vmsin_var_corr_anltc", (DL_FUNC) &_BAMBI_vmsin_var_corr_anltc, 3},
+    {"_BAMBI_vmsin_var_corr_mc", (DL_FUNC) &_BAMBI_vmsin_var_corr_mc, 5},
+    {"_BAMBI_vmsin_var_cor_singlepar_cpp", (DL_FUNC) &_BAMBI_vmsin_var_cor_singlepar_cpp, 5},
+    {"_BAMBI_ldwnorm2_num", (DL_FUNC) &_BAMBI_ldwnorm2_num, 3},
+    {"_BAMBI_l_const_wnorm2", (DL_FUNC) &_BAMBI_l_const_wnorm2, 1},
+    {"_BAMBI_const_wnorm2", (DL_FUNC) &_BAMBI_const_wnorm2, 1},
+    {"_BAMBI_log_const_wnorm2_all", (DL_FUNC) &_BAMBI_log_const_wnorm2_all, 1},
+    {"_BAMBI_mem_p_wnorm2", (DL_FUNC) &_BAMBI_mem_p_wnorm2, 6},
+    {"_BAMBI_llik_wnorm2_full", (DL_FUNC) &_BAMBI_llik_wnorm2_full, 6},
+    {"_BAMBI_grad_den_wnorm2_one_comp_i_unadj", (DL_FUNC) &_BAMBI_grad_den_wnorm2_one_comp_i_unadj, 6},
+    {"_BAMBI_grad_wnorm2_all_comp", (DL_FUNC) &_BAMBI_grad_wnorm2_all_comp, 5},
+    {"_BAMBI_wnorm2mix", (DL_FUNC) &_BAMBI_wnorm2mix, 5},
+    {"_BAMBI_wnorm2mix_manyx", (DL_FUNC) &_BAMBI_wnorm2mix_manyx, 5},
+    {"_BAMBI_dwnorm2_onex_manypar", (DL_FUNC) &_BAMBI_dwnorm2_onex_manypar, 7},
+    {"_BAMBI_dwnorm2_manyx_onepar", (DL_FUNC) &_BAMBI_dwnorm2_manyx_onepar, 7},
+    {"_BAMBI_dwnorm2_manyx_manypar", (DL_FUNC) &_BAMBI_dwnorm2_manyx_manypar, 7},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_BAMBI(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

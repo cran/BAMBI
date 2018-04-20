@@ -77,8 +77,8 @@ Markov chain is restarted at the current parameter values.
 }
 \examples{
 # illustration only - more iterations needed for convergence
-fit.vmcos.20 <- fit_vmcosmix(tim8, ncomp = 3, n.iter =  20,
+fit.vmcos.10 <- fit_vmcosmix(tim8, ncomp = 3, n.iter =  10,
                              ncores = 1)
-fit.vmcos.20
+fit.vmcos.10
 
 }

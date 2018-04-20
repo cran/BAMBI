@@ -563,6 +563,7 @@ WAIC <- function(object, form = 1, burnin = 1/3, thin = 1, ...)
 #'
 #'
 #' @examples
+#' set.seed(1)
 #' # illustration only - more iterations needed for convergence
 #' fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
 #'                              ncores = 1)

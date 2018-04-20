@@ -38,6 +38,7 @@ by applying \code{fn} on the MCMC samples (using the function \link{pointest}), 
 The random deviates are generated from the estimated mixture density \eqn{f(x|\hat{\eta})}.
 }
 \examples{
+set.seed(1)
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
                              ncores = 1)

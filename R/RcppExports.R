@@ -13,6 +13,22 @@ cID <- function(probs, ncomp, Uv) {
     .Call(`_BAMBI_cID`, probs, ncomp, Uv)
 }
 
+change_labs <- function(orig, rand_perm) {
+    .Call(`_BAMBI_change_labs`, orig, rand_perm)
+}
+
+calc_corr_tau_2 <- function(samp_mat) {
+    .Call(`_BAMBI_calc_corr_tau_2`, samp_mat)
+}
+
+calc_corr_tau_1 <- function(samp_mat) {
+    .Call(`_BAMBI_calc_corr_tau_1`, samp_mat)
+}
+
+calc_corr_fl <- function(samp_mat) {
+    .Call(`_BAMBI_calc_corr_fl`, samp_mat)
+}
+
 const_univm <- function(k) {
     .Call(`_BAMBI_const_univm`, k)
 }
@@ -197,6 +213,18 @@ vmcosmix_manyx <- function(x, par, pi, log_c_von) {
     .Call(`_BAMBI_vmcosmix_manyx`, x, par, pi, log_c_von)
 }
 
+vmcos_var_corr_anltc <- function(k1, k2, k3) {
+    .Call(`_BAMBI_vmcos_var_corr_anltc`, k1, k2, k3)
+}
+
+vmcos_var_corr_mc <- function(k1, k2, k3, uni_rand, ncores = 1L) {
+    .Call(`_BAMBI_vmcos_var_corr_mc`, k1, k2, k3, uni_rand, ncores)
+}
+
+vmcos_var_cor_singlepar_cpp <- function(k1, k2, k3, uni_rand, ncores = 1L) {
+    .Call(`_BAMBI_vmcos_var_cor_singlepar_cpp`, k1, k2, k3, uni_rand, ncores)
+}
+
 const_vmsin <- function(k1, k2, lambda) {
     .Call(`_BAMBI_const_vmsin`, k1, k2, lambda)
 }
@@ -253,6 +281,14 @@ llik_vmsin_full <- function(data, par, pi, log_c, ncores = 1L) {
     .Call(`_BAMBI_llik_vmsin_full`, data, par, pi, log_c, ncores)
 }
 
+llik_vmsin_one_comp <- function(data, par_vec, log_c, ncores = 1L) {
+    .Call(`_BAMBI_llik_vmsin_one_comp`, data, par_vec, log_c, ncores)
+}
+
+grad_vmsin_one_comp <- function(data, par_vec, ncores = 1L) {
+    .Call(`_BAMBI_grad_vmsin_one_comp`, data, par_vec, ncores)
+}
+
 grad_vmsin_all_comp <- function(data, par_mat, pi, ncores = 1L) {
     .Call(`_BAMBI_grad_vmsin_all_comp`, data, par_mat, pi, ncores)
 }
@@ -263,6 +299,18 @@ vmsinmix <- function(x, y, par, pi, log_c_von) {
 
 vmsinmix_manyx <- function(x, par, pi, log_c_von) {
     .Call(`_BAMBI_vmsinmix_manyx`, x, par, pi, log_c_von)
+}
+
+vmsin_var_corr_anltc <- function(k1, k2, lambda) {
+    .Call(`_BAMBI_vmsin_var_corr_anltc`, k1, k2, lambda)
+}
+
+vmsin_var_corr_mc <- function(k1, k2, k3, uni_rand, ncores = 1L) {
+    .Call(`_BAMBI_vmsin_var_corr_mc`, k1, k2, k3, uni_rand, ncores)
+}
+
+vmsin_var_cor_singlepar_cpp <- function(k1, k2, k3, uni_rand, ncores = 1L) {
+    .Call(`_BAMBI_vmsin_var_cor_singlepar_cpp`, k1, k2, k3, uni_rand, ncores)
 }
 
 ldwnorm2_num <- function(x, par, omega_2pi) {

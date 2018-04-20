@@ -84,7 +84,8 @@ double const_vmcos_mc(double k1, double k2, double k3, arma::mat uni_rand, int n
 // [[Rcpp::export]]
 double const_vmcos(double k1, double k2, double k3, arma::mat  uni_rand, int ncores = 1)
 {
-  if((k3 >= -5) || (fmax(fmax(k1, k2), -k3) <= 15)) {
+  // if((k3 >= -5) || (fmax(fmax(k1, k2), -k3) <= 15)) {
+  if(k3 >= 0) {
     return const_vmcos_anltc(k1, k2, k3);
   } else {
     return const_vmcos_mc(k1, k2, k3, uni_rand, ncores);
@@ -108,17 +109,67 @@ double d_const_vmcos_k1_anltc(double k1, double k2, double k3)
 }
 
 
+// // [[Rcpp::export]]
+// arma::vec d_const_vmcos_anltc(double k1, double k2, double k3)
+// {
+//   arma::vec result;
+//   result << d_const_vmcos_k1_anltc(k1, k2, k3)
+//          << d_const_vmcos_k1_anltc(k2, k3, k1)
+//          << d_const_vmcos_k1_anltc(k3, k1, k2)
+//          << arma::endr;
+//   return result;
+// }
+
+
 // [[Rcpp::export]]
 arma::vec d_const_vmcos_anltc(double k1, double k2, double k3)
 {
-  arma::vec result;
-  result << d_const_vmcos_k1_anltc(k1, k2, k3)
-         << d_const_vmcos_k1_anltc(k2, k3, k1)
-         << d_const_vmcos_k1_anltc(k3, k1, k2)
-         << arma::endr;
-  return result;
-}
+  int p = 1;
+  double
+    start1 = BESSI1(k1) * BESSI0(k2) * BESSI0(k3),
+      start2 = BESSI1(k2) * BESSI0(k1) * BESSI0(k3),
+      start3 = BESSI1(k3) * BESSI0(k2) * BESSI0(k1),
+      I_p_k1 = BESSI(p, k1), I_p_k2 = BESSI(p, k2), I_p_k3 = BESSI(p, k3),
+      I_p_pls1_k1 = BESSI(p+1, k1), I_p_pls1_k2 = BESSI(p+1, k2), I_p_pls1_k3 = BESSI(p+1, k3),
+      I_p_mins1_k1 = BESSI(p-1, k1), I_p_mins1_k2 = BESSI(p-1, k2), I_p_mins1_k3 = BESSI(p-1, k3),
 
+      temp1 = (I_p_pls1_k1 + I_p_mins1_k1)  * I_p_k2 * I_p_k3,
+      temp2 = (I_p_pls1_k2 + I_p_mins1_k2)  * I_p_k1 * I_p_k3,
+      temp3 = (I_p_pls1_k3 + I_p_mins1_k3)  * I_p_k1 * I_p_k2;
+
+  start1 += temp1;
+  start2 += temp2;
+  start3 += temp3;
+
+  while((std::max(fabs(temp1), std::max(fabs(temp2), fabs(temp3))) > 1e-7) && (p <= 10000)) {
+    p++;
+    // shift p on right by 1
+    I_p_mins1_k1 = I_p_k1;
+    I_p_mins1_k2 = I_p_k2;
+    I_p_mins1_k3 = I_p_k3;
+    I_p_k1 = I_p_pls1_k1;
+    I_p_k2 = I_p_pls1_k2;
+    I_p_k3 = I_p_pls1_k3;
+    I_p_pls1_k1 = BESSI(p+1, k1);
+    I_p_pls1_k2 = BESSI(p+1, k2);
+    I_p_pls1_k3 = BESSI(p+1, k3);
+
+    temp1 = (I_p_pls1_k1 + I_p_mins1_k1)  * I_p_k2 * I_p_k3;
+    temp2 = (I_p_pls1_k2 + I_p_mins1_k2)  * I_p_k1 * I_p_k3;
+    temp3 = (I_p_pls1_k3 + I_p_mins1_k3)  * I_p_k1 * I_p_k2;
+
+    start1 += temp1;
+    start2 += temp2;
+    start3 += temp3;
+  }
+  arma::vec out;
+
+  out << 4 * M_PI * M_PI * start1
+      << 4 * M_PI * M_PI * start2
+      << 4 * M_PI * M_PI * start3
+      << arma::endr;
+  return  out;
+}
 
 
 // [[Rcpp::export]]
@@ -152,7 +203,8 @@ arma::vec d_const_vmcos_mc(double k1, double k2, double k3, arma::mat uni_rand, 
 arma::vec d_const_vmcos(arma::vec par, arma::mat uni_rand, int ncores = 1)
 {
   double k1 = par[0], k2 = par[1], k3 = par[2];
-  if((k3 >= -5) || (fmax(fmax(k1, k2), -k3) <= 15)) {
+  // if((k3 >= -5) || (fmax(fmax(k1, k2), -k3) <= 15)) {
+  if(k3 >= 0) {
     return d_const_vmcos_anltc(k1, k2, k3);
   } else {
     return d_const_vmcos_mc(k1, k2, k3, uni_rand, ncores);
@@ -248,33 +300,80 @@ arma::vec dcos_manyx_manypar(arma::mat x, arma::vec k1, arma::vec k2, arma::vec 
 
 
 
+// // generates a single observation
+// arma::rowvec rcos_single_onepar(double k1, double k2, double k3,
+//                                 double mu1, double mu2, double I_upper_bd) {
+//   arma::vec par(5);
+//   par << k1 << k2 << k3 << mu1 << mu2 << arma::endr;
+//
+//   double x, y, U1;
+//
+//   arma::rowvec final_sample(2);
+//
+//
+//   // do marginal then conditional generation if at least one of k1, k2 >= k3
+//   // and k3 >= 0
+//   // else use brute force rejection
+//
+//   if (k3 >= 0 && std::max(k1, k2) >= k3) {
+//     double k13;
+//     int accpt_y = 0; // will be 1 if accepted in rejection sampling from y marginal
+//     // First generate y from the marginal distribution given in Eqn. 5 in Mardia 2007
+//     double bessel_upper = BESSI0(sqrt(k1 * k1 + k3 * k3 + 2 * k1 * k3));
+//     while (accpt_y < 1) {
+//       y = runivm_single_onepar(k2, mu2);
+//       k13 = sqrt(k1 * k1 + k3 * k3 + 2 * k1 * k3 * cos(y - mu2));
+//       U1 = R::unif_rand();
+//       // I_upper_bd is numerically calculated in R
+//       if (U1 <= BESSI0(k13) / bessel_upper)
+//         accpt_y++;
+//     }
+//     double y_mu2 = atan( k3 * sin(y - mu2) / (k1 + k3 * cos(y - mu2)) );
+//     // Now generate x from vM(k13, mu1 + y_mu2)
+//     x = runivm_single_onepar(k13, (mu1 + y_mu2));
+//
+//   } else {
+//     // brute force bivariate rejection sampling
+//     // with numerically computed upper bound I_upper_bd (passed from R)
+//     int accpt = 0;
+//     while (accpt < 1) {
+//       x = R::runif(0, 2*M_PI);
+//       y = R::runif(0, 2*M_PI);
+//       U1 = R::unif_rand();
+//       if (log(U1) <= (k1*cos(x-mu1)+k2*cos(y-mu2)+k3*cos(x-y-mu1+mu2))-I_upper_bd) {
+//         accpt++;
+//       }
+//     }
+//   }
+//
+//   final_sample[0] = x;
+//   final_sample[1] = y;
+//
+//   return final_sample;
+// }
+
+
+
 // generates a single observation
 arma::rowvec rcos_single_onepar(double k1, double k2, double k3,
                                 double mu1, double mu2, double I_upper_bd) {
   arma::vec par(5);
-  par << k1 << k2 << k3 << mu1 << mu2 << arma::endr;
-
-  double x, y, U1, k13;
-
-  // First generate y from the marginal distribution given in Eqn. 5 in Mardia 2007
-
-  int accpt_y = 0;
-
-  while (accpt_y < 1) {
-    y = runivm_single_onepar(k2, mu2);
-    k13 = sqrt(k1 * k1 + k3 * k3 + 2 * k1 * k3 * cos(y - mu2));
-    U1 = R::unif_rand();
-    // I_upper_bd is numerically calculated in R
-    if (U1 <= BESSI0(k13) / I_upper_bd)
-      accpt_y++;
-  }
-
-  double y_mu2 = atan( k3 * sin(y - mu2) / (k1 + k3 * cos(y - mu2)) );
-
-  // Now generate x from vM(k13, mu1 + y_mu2)
-  x = runivm_single_onepar(k13, (mu1 + y_mu2));
+  double x, y, U1;
 
   arma::rowvec final_sample(2);
+
+  // brute force bivariate rejection sampling
+  // with numerically computed upper bound I_upper_bd (passed from R)
+  int accpt = 0;
+  while (accpt < 1) {
+    x = R::runif(0, 2*M_PI);
+    y = R::runif(0, 2*M_PI);
+    U1 = R::unif_rand();
+    if (log(U1) <= (k1*cos(x-mu1)+k2*cos(y-mu2)+k3*cos(x-y-mu1+mu2))-I_upper_bd) {
+      accpt++;
+    }
+  }
+
   final_sample[0] = x;
   final_sample[1] = y;
 
@@ -440,3 +539,236 @@ arma::vec vmcosmix_manyx(arma::mat x, arma::mat par, arma::vec pi, arma::vec log
   return(result);
 }
 
+
+// [[Rcpp::export]]
+List vmcos_var_corr_anltc(double k1, double k2, double k3)
+{
+
+  // double c = 0, c_k1 = 0, c_k2 = 0, c_k3 = 0, c_k1k2 = 0,
+  //   c_k1k1 = 0, c_k2k2 = 0;
+
+  int p = 0;
+
+  double
+    I_p_k1 = BESSI(p, k1),
+      I_p_k2 = BESSI(p, k2),
+      I_p_k3 = BESSI(p, k3),
+      I_pplus1_k1 = BESSI(p+1, k1),
+      I_pplus1_k2 = BESSI(p+1, k2),
+      I_pplus1_k3 = BESSI(p+1, k3),
+      I_pplus2_k1 = BESSI(p+2, k1),
+      I_pplus2_k2 = BESSI(p+2, k2),
+      I_pmins1_k1 = I_pplus1_k1,
+      I_pmins1_k2 = I_pplus1_k2,
+      I_pmins1_k3 = I_pplus1_k3,
+      I_pmins2_k1 = I_pplus2_k1,
+      I_pmins2_k2 = I_pplus2_k2;
+
+  double
+    c = 0.5 * I_p_k1 * I_p_k2 * I_p_k3,
+      c_k1 = I_pplus1_k1 * I_p_k2 * I_p_k3,
+      c_k2 = I_pplus1_k2 * I_p_k1 * I_p_k3,
+      c_k3 = I_pplus1_k3 * I_p_k2 * I_p_k1,
+      c_k1k1 = (I_p_k1 + I_pplus2_k1) * I_p_k2 * I_p_k3,
+      c_k2k2 = (I_p_k2 + I_pplus2_k2) * I_p_k1 * I_p_k3,
+      c_k1k2 = 2 * I_pplus1_k1 * I_pplus1_k2 * I_p_k3;
+
+
+  double den_min = std::min(c, std::min(k1, k2)),
+    temp_c = den_min;
+
+  while(temp_c/den_min > 1e-6) {
+    p++;
+
+    I_pmins2_k1 = I_pmins1_k1;
+    I_pmins2_k2 = I_pmins1_k2;
+    I_pmins1_k1 = I_p_k1;
+    I_pmins1_k2 = I_p_k2;
+    I_pmins1_k3 = I_p_k3;
+    I_p_k1 = I_pplus1_k1;
+    I_p_k2 = I_pplus1_k2;
+    I_p_k3 = I_pplus1_k3;
+    I_pplus1_k1 = I_pplus2_k1;
+    I_pplus1_k2 = I_pplus2_k2;
+    I_pplus1_k3 = BESSI(p+1, k3);
+    I_pplus2_k1 = BESSI(p+2, k1);
+    I_pplus2_k2 = BESSI(p+2, k2);
+
+    temp_c = I_p_k1 * I_p_k2 * I_p_k3;
+    c += temp_c;
+    c_k1 += (I_pplus1_k1 + I_pmins1_k1)  * I_p_k2 * I_p_k3;
+    c_k2 += (I_pplus1_k2 + I_pmins1_k2)  * I_p_k1 * I_p_k3;
+    c_k3 += (I_pplus1_k3 + I_pmins1_k3)  * I_p_k2 * I_p_k1;
+    c_k1k2 += (I_pplus1_k1 + I_pmins1_k1) * (I_pplus1_k2 + I_pmins1_k2) * I_p_k3;
+    c_k1k1 += (I_pmins2_k1 + 2*I_p_k1 + I_pplus2_k1)  * I_p_k2 * I_p_k3;
+    c_k2k2 += (I_pmins2_k2 + 2*I_p_k2 + I_pplus2_k2)  * I_p_k1 * I_p_k3;
+
+  }
+
+
+  double pi_sq_times_4 = 4 * M_PI * M_PI;
+
+  c *= pi_sq_times_4 * 2;
+  c_k1 *= pi_sq_times_4;
+  c_k2 *= pi_sq_times_4;
+  c_k3 *= pi_sq_times_4;
+  c_k1k2 *= pi_sq_times_4 * 0.5;
+  c_k1k1 *= pi_sq_times_4 * 0.5;
+  c_k2k2 *= pi_sq_times_4 * 0.5;
+
+  double
+    rho_js = (fabs(c_k3 - c_k1k2) < 1e-10) ? 0 :
+    sgn(c_k3 - c_k1k2) *
+      fmin(1, exp(log(plus(fabs(c_k3 - c_k1k2)))
+                    - 0.5*log(plus(c-c_k1k1))
+                    - 0.5*log(plus(c-c_k2k2)))
+      ),
+
+
+      // rho_fl = rho_js * c_k1k2 / sqrt(c_k1k1 * c_k2k2),
+      rho_fl = (fabs(c_k1k2) < 1e-10) ?  0 :
+    rho_js * sgn(c_k1k2) *
+      fmin(1, exp(log(plus(fabs(c_k1k2)))
+                    - 0.5*log(plus(c_k1k1))
+                    - 0.5*log(plus(c_k2k2)))
+      );
+
+  // double
+  //   rho_js = (c_k3 - c_k1k2)/sqrt((c-c_k1k1) * (c-c_k2k2)),
+  //     rho_fl = rho_js * c_k1k2 / sqrt(c_k1k1 * c_k2k2);
+
+  double
+    // var1 = 1 - (c_k1/c);
+    var1 = fmin(1,
+                1 - sgn(c_k1) *
+                  exp(log(plus(fabs(c_k1)))
+                        - log(plus(c)))
+    ),
+    // var2 = 1 - (c_k2/c);
+    var2 = fmin(1, 1 - sgn(c_k2)*exp(log(plus(fabs(c_k2)))
+                                       - log(plus(c)))
+    );
+
+
+  return List::create(Rcpp::Named("var1") = var1,
+                      Rcpp::Named("var2") = var2,
+                      Rcpp::Named("rho_fl") = rho_fl,
+                      Rcpp::Named("rho_js") = rho_js);
+
+}
+
+
+
+// [[Rcpp::export]]
+List vmcos_var_corr_mc(double k1, double k2, double k3,
+                       arma::mat uni_rand, int ncores = 1)
+{
+  double x, y, expon, cos_x, cos_y, cos_x_y,
+  sum_exp, sum_exp1, sum_exp2, sum_exp3, sum_exp11,
+  sum_exp12, sum_exp22,temp, // exp_temp,
+  exp_expon_temp;
+
+  int nsim = uni_rand.n_rows;
+
+  x = uni_rand(0, 0) * 2 * M_PI;
+  y = uni_rand(0, 1) * 2 * M_PI;
+  cos_x = cos(x);
+  cos_y = cos(y);
+  cos_x_y = cos(x-y);
+  sum_exp = 1.0;
+  sum_exp1 = cos_x;
+  sum_exp2 = cos_y;
+  sum_exp3 = cos_x_y;
+  sum_exp11 = cos_x*cos_x;
+  sum_exp22 = cos_y*cos_y;
+  sum_exp12 = cos_x*cos_y;
+  temp = k1 * cos_x + k2 * cos_y + k3 * cos_x_y;
+  // exp_temp = exp(temp);
+
+#pragma omp parallel for reduction(+:sum_exp1, sum_exp2, sum_exp3) private(expon, x, y) num_threads(ncores)
+  for(int i = 1; i < nsim; i++) {
+    x = uni_rand(i, 0) * 2 * M_PI;
+    y = uni_rand(i, 1) * 2 * M_PI;
+    cos_x = cos(x);
+    cos_y = cos(y);
+    cos_x_y = cos(x-y);
+    expon = k1 * cos_x + k2 * cos_y + k3 * cos_x_y;
+    exp_expon_temp = exp(expon - temp);
+
+    sum_exp += exp_expon_temp;
+    sum_exp1 += exp_expon_temp *  cos_x;
+    sum_exp2 += exp_expon_temp *  cos_y;
+    sum_exp3 += exp_expon_temp *  cos_x_y;
+    sum_exp11 += exp_expon_temp *  cos_x*cos_x;
+    sum_exp22 += exp_expon_temp *  cos_y*cos_y;
+    sum_exp12 += exp_expon_temp *  cos_x*cos_y;
+
+  }
+
+
+
+  double pisq_4_exp_temp_over_nsim = 4 * M_PI * M_PI / nsim;
+
+  // all of the following need to be multiplied by exp(expon)
+  double c = sum_exp * pisq_4_exp_temp_over_nsim,
+    c_k1 = sum_exp1 * pisq_4_exp_temp_over_nsim,
+    c_k2 = sum_exp2 * pisq_4_exp_temp_over_nsim,
+    c_k3 = sum_exp3 * pisq_4_exp_temp_over_nsim,
+    c_k1k2 = sum_exp12 * pisq_4_exp_temp_over_nsim,
+    c_k1k1 = sum_exp11 * pisq_4_exp_temp_over_nsim,
+    c_k2k2 = sum_exp22 * pisq_4_exp_temp_over_nsim;
+
+
+  double
+    rho_js = (fabs(c_k3 - c_k1k2) < 1e-10) ? 0 :
+    sgn(c_k3 - c_k1k2) *
+      fmin(1, exp(log(plus(fabs(c_k3 - c_k1k2)))
+                    - 0.5*log(plus(c-c_k1k1))
+                    - 0.5*log(plus(c-c_k2k2)))
+      ),
+
+
+      // rho_fl = rho_js * c_k1k2 / sqrt(c_k1k1 * c_k2k2),
+      rho_fl = (fabs(c_k1k2) < 1e-10) ?  0 :
+    rho_js * sgn(c_k1k2) *
+      fmin(1, exp(log(plus(fabs(c_k1k2)))
+                    - 0.5*log(plus(c_k1k1))
+                    - 0.5*log(plus(c_k2k2)))
+      );
+
+  // double
+  //   rho_js = (c_k3 - c_k1k2)/sqrt((c-c_k1k1) * (c-c_k2k2)),
+  //     rho_fl = rho_js * c_k1k2 / sqrt(c_k1k1 * c_k2k2);
+
+  double
+    // var1 = 1 - (c_k1/c);
+    var1 = fmin(1,
+                1 - sgn(c_k1) *
+                  exp(log(plus(fabs(c_k1)))
+                        - log(plus(c)))
+    ),
+    // var2 = 1 - (c_k2/c);
+    var2 = fmin(1, 1 - sgn(c_k2)*exp(log(plus(fabs(c_k2)))
+                                       - log(plus(c)))
+    );
+
+  return List::create(Rcpp::Named("var1") = var1,
+                      Rcpp::Named("var2") = var2,
+                      Rcpp::Named("rho_fl") = rho_fl,
+                      Rcpp::Named("rho_js") = rho_js);
+}
+
+
+
+
+// [[Rcpp::export]]
+List vmcos_var_cor_singlepar_cpp(double k1, double k2, double k3,
+                    arma::mat uni_rand, int ncores = 1)
+{
+  if(k3 >= 0 && k1 <= 50 && k2 <= 50 && k3 <= 50) {
+    return vmcos_var_corr_anltc(k1, k2, k3);
+  } else {
+    return vmcos_var_corr_mc(k1, k2, k3, uni_rand, ncores);
+  }
+
+}

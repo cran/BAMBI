@@ -95,6 +95,21 @@ inline double BESSI(int n, double x)
 
 
 
+inline int sgn(double val) {
+  if (val > 0) {
+    return 1;
+  } else if (val < 0) {
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
+inline double plus(double x) {
+  return fmax(x, 1e-10);
+}
+
+
 #endif
 
 

@@ -1,7 +1,7 @@
 #' @keywords internal
 Ainv <- function(x) {
   if(x < 0.53) (2*x + x^3 + 5/6*x^5)
-  else if(x > 0.86) ((9 - 8*x + 3*x^2) / (8 * (1 - x)))
+  else if(x >= 0.86 && x < 0.95) ((9 - 8*x + 3*x^2) / (8 * (1 - x)))
   else ((1.28 - 0.53*x^2) * tan(x*pi/2))
 }
 

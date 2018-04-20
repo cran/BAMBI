@@ -276,3 +276,21 @@ arma::vec dwnorm2_manyx_manypar(arma::mat x, arma::vec k1, arma::vec k2, arma::v
 }
 
 
+//
+// // [[Rcpp::export]]
+// List wnorm2_var_corr(double k1, double k2, double k3)
+// {
+//   double den = k1*k2 - k3*k3,
+//     sig1_sq = k2/den,
+//     sig2_sq = k1/den,
+//     rho = -k3/den;
+//
+//   double rho_fl = sinh(2*rho*sqrt(sig1_sq*sig2_sq))
+//     /sqrt(sinh(2*sig1_sq)* sinh(2*sig2_sq));
+//
+//   return List::create(Rcpp::Named("var1") = 1-exp(-0.5*sig1_sq),
+//                       Rcpp::Named("var2") = 1-exp(-0.5*sig2_sq),
+//                       Rcpp::Named("rho") = rho);
+//
+// }
+

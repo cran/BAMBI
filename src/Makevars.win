@@ -1,4 +1,7 @@
-## -- compiling for OpenMP 
+# -- use C++11
+CXX_STD = CXX11
+##
+## -- compiling for OpenMP
 PKG_CXXFLAGS=$(SHLIB_OPENMP_CXXFLAGS)
 ##
 ## -- linking for OpenMP

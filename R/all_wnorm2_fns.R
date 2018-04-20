@@ -1134,3 +1134,26 @@ fit_wnorm2mix <- function(data, ncomp, start_par = list(), method="hmc", epsilon
 
   return(result)
 }
+
+
+# N plays no role - just for similarity with vmsin/cos models
+wnorm2_var_cor_singlepar <- function(kappa1, kappa2, kappa3, N) {
+  den <- kappa1*kappa2 - kappa3^2
+  sig1_sq <- kappa2/den
+  sig2_sq <- kappa1/den
+  sig12 <- -kappa3/den
+
+  rho_fl <- sinh(2*sig12) /
+    sqrt(sinh(2*sig1_sq)* sinh(2*sig2_sq))
+
+  rho_js <- sinh(sig12) /
+    sqrt(sinh(sig1_sq)* sinh(sig2_sq))
+
+  list(var1 = 1-exp(-0.5*sig1_sq),
+       var2 = 1-exp(-0.5*sig2_sq),
+       rho_fl = rho_fl,
+       rho_js = rho_js
+  )
+}
+
+

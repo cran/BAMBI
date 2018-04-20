@@ -61,37 +61,71 @@
 #'
 #' @export
 
-rvmsin <- function(n, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0)
-{
-  if(any(c(kappa1, kappa2) <= 0)) stop("kappa1 and kappa2 must be positive")
+# rvmsin <- function(n, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0)
+# {
+#   if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be non-negative")
+#   if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
+#   if(any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
+#
+#   opt_I_a <- function(k1, k2, k3, mu1, mu2) {
+#     I_a <- function(x) BESSI0_C(sqrt(k2^2 + k3^2 * (sin(x - mu1))^2))
+#     optimize(I_a, c(0, 2*pi), maximum = TRUE)$maximum
+#   }
+#
+#   if(max(length(kappa1), length(kappa2), length(kappa3), length(mu1), length(mu2)) > 1) {
+#     expanded <- expand_args(kappa1, kappa2, kappa3, mu1, mu2)
+#     kappa1 <- expanded[[1]]; kappa2 <- expanded[[2]]; kappa3 <- expanded[[3]]
+#     mu1 <- expanded[[4]]; mu2 <- expanded[[5]]
+#     upper_bd_all <- vapply(1:length(kappa1),
+#                            function(h) opt_I_a(kappa1[h], kappa2[h], kappa3[h], mu1[h], mu2[h]),
+#                            0)
+#     rsin_manypar(kappa1, kappa2, kappa3, mu1, mu2, upper_bd_all)
+#   } else {
+#     upper_bd <- opt_I_a(kappa1, kappa2, kappa3, mu1, mu2)
+#     rsin_onepar(n, kappa1, kappa2, kappa3, mu1, mu2, upper_bd)
+#   }
+# }
+
+
+rvmsin <- function(n, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0) {
+  if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be nonnegative")
   if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
   if(any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
 
-  opt_I_a <- function(k1, k2, k3, mu1, mu2) {
-    I_a <- function(x) BESSI0_C(sqrt(k2^2 + k3^2 * (sin(x - mu1))^2))
-    optimize(I_a, c(0, 2*pi), maximum = TRUE)$maximum
+  opt_obj <- function(k1=1, k2=1, k3=0, mu1=0, mu2=0) {
+    # for numerical stability, if k3 < 0, fabs(k1+k3) < 1e-5 or fabs(k2+k3) < 1e-5
+    # make k3 = k3 * (1+1e-5)
+    if (k3 < 0) {
+      while (abs(k1 + k3) < 1e-5 || abs(k2 + k3) < 1e-5) {
+        k3 = k3*(1+1e-5)
+      }
+    }
+    obj <- optim(c(0,0), fn = function(x) -(k1*cos(x[1]-mu1)+k2*cos(x[2]-mu2)+k3*sin(x[1]-mu1)*sin(x[2]-mu2)),
+                 gr = function(x)  -c(-k1*sin(x[1]-mu1)+k3*cos(x[1]-mu1)*sin(x[2]-mu2),
+                                      -k2*sin(x[2]-mu2)+k3*sin(x[1]-mu1)*cos(x[2]-mu2)))
+    -obj$value
+
   }
 
   if(max(length(kappa1), length(kappa2), length(kappa3), length(mu1), length(mu2)) > 1) {
     expanded <- expand_args(kappa1, kappa2, kappa3, mu1, mu2)
-    kappa1 <- expanded[[1]]; kappa2 <- expanded[[2]]; kappa3 <- expanded[[3]]
+    k1 <- expanded[[1]]; k2 <- expanded[[2]]; k3 <- expanded[[3]]
     mu1 <- expanded[[4]]; mu2 <- expanded[[5]]
-    upper_bd_all <- vapply(1:length(kappa1),
-                           function(h) opt_I_a(kappa1[h], kappa2[h], kappa3[h], mu1[h], mu2[h]),
+    upper_bd_all <- vapply(1:length(k1),
+                           function(h) opt_obj(k1[h], k2[h], k3[h], mu1[h], mu2[h]),
                            0)
-    rsin_manypar(kappa1, kappa2, kappa3, mu1, mu2, upper_bd_all)
+    rsin_manypar(k1, k2, k3, mu1, mu2, upper_bd_all)
   } else {
-    upper_bd <- opt_I_a(kappa1, kappa2, kappa3, mu1, mu2)
+    upper_bd <- opt_obj(kappa1, kappa2, kappa3, mu1, mu2)
     rsin_onepar(n, kappa1, kappa2, kappa3, mu1, mu2, upper_bd)
   }
 }
-
 
 #' @rdname rvmsin
 #' @export
 dvmsin <- function(x, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0)
 {
-  if(any(c(kappa1, kappa2) <= 0)) stop("kappa1 and kappa2 must be positive")
+  if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be non-negative")
   if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
   if(any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
   if((length(dim(x)) < 2 && length(x) != 2) || (length(dim(x)) == 2 && tail(dim(x), 1) != 2)
@@ -183,16 +217,32 @@ rvmsinmix <- function(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
   if(any(allpar$mu1 < 0 | allpar$mu1 >= 2*pi)) allpar$mu1 <- prncp_reg(allpar$mu1)
   if(any(allpar$mu2 < 0 | allpar$mu2 >= 2*pi)) allpar$mu2 <- prncp_reg(allpar$mu2)
 
-  opt_I_a <- function(k1, k2, k3, mu1, mu2) {
-    I_a <- function(x) BESSI0_C(sqrt(k2^2 + k3^2 * (sin(x - mu1))^2))
-    optimize(I_a, c(0, 2*pi), maximum = TRUE)$maximum
+  # opt_I_a <- function(k1, k2, k3, mu1, mu2) {
+  #   I_a <- function(x) BESSI0_C(sqrt(k2^2 + k3^2 * (sin(x - mu1))^2))
+  #   optimize(I_a, c(0, 2*pi), maximum = TRUE)$maximum
+  # }
+  # upper_bd_all <- vapply(1:length(kappa1),
+  #                        function(h) opt_I_a(kappa1[h], kappa2[h], kappa3[h], mu1[h], mu2[h]),
+  #                        0)
+  # clus_label <- cID(t(replicate(allpar$pmix, n = n)), length(allpar$pmix), runif(n))
+  # rsin_manypar(allpar$kappa1[clus_label], allpar$kappa2[clus_label], allpar$kappa3[clus_label],
+  #              allpar$mu1[clus_label], allpar$mu2[clus_label], upper_bd_all)
+
+  # browser()
+  out <- matrix(0, n, 2)
+  ncomp <- allpar_len[1] # number of components
+  comp_ind <- cID(t(replicate(n, pmix)), ncomp, runif(n))
+  # n samples from multinom(ncomp, pmix)
+  for(j in seq_len(ncomp)) {
+    obs_ind_j <- which(comp_ind == j)
+    n_j <- length(obs_ind_j)
+    if(n_j > 0) {
+      out[obs_ind_j, ] <- rvmsin(n_j, kappa1[j], kappa2[j],
+                                 kappa3[j], mu1[j], mu2[j])
+    }
   }
-  upper_bd_all <- vapply(1:length(kappa1),
-                         function(h) opt_I_a(kappa1[h], kappa2[h], kappa3[h], mu1[h], mu2[h]),
-                         0)
-  clus_label <- cID(t(replicate(allpar$pmix, n = n)), length(allpar$pmix), runif(n))
-  rsin_manypar(allpar$kappa1[clus_label], allpar$kappa2[clus_label], allpar$kappa3[clus_label],
-               allpar$mu1[clus_label], allpar$mu2[clus_label], upper_bd_all)
+
+  out
 }
 
 
@@ -1125,4 +1175,46 @@ fit_vmsinmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=
   class(result) <- "angmcmc"
 
   return(result)
+}
+
+vmsin_var_cor_singlepar_large <- function(kappa1, kappa2, kappa3, N) {
+  # N <- 1e4
+  dat <- rvmsin(N, kappa1, kappa2, kappa3, 0, 0)
+
+  ave_sin1sin2 <- sum(sin(dat[, 1]) * sin(dat[, 2]))/N
+  ave_cos1cos2 <- sum(cos(dat[, 1]) * cos(dat[, 2]))/N
+
+  ave_sin1sq <- sum(sin(dat[, 1])^2)/N
+  ave_cos1sq <- 1-ave_sin1sq
+  ave_cos1 <- sum(cos(dat[, 1]))/N
+
+  ave_sin2sq <- sum(sin(dat[, 2])^2)/N
+  ave_cos2sq <- 1-ave_sin2sq
+  ave_cos2 <- sum(cos(dat[, 2]))/N
+
+  rho_js <- ave_sin1sin2/sqrt(ave_sin1sq * ave_sin2sq)
+  # ifelse(ave_sin1sin2 >= 0, 1, -1) *
+  # min(abs(ave_sin1sin2)/sqrt(ave_sin1sq * ave_sin2sq), 1)
+
+  rho_fl <- rho_js *
+    ave_cos1cos2/sqrt(ave_cos1sq * ave_cos2sq)
+  # ifelse(ave_cos1cos2 >= 0, 1, -1) *
+  # min(abs(ave_cos1cos2)/sqrt(ave_cos1sq * ave_cos2sq), 1)
+
+  var1 <- min(1 - ave_cos1, 1)
+  var2 <- min(1 - ave_cos2, 1)
+
+  list(var1 = var1, var2 = var2, rho_fl = rho_fl, rho_js = rho_js)
+}
+
+
+vmsin_var_cor_singlepar <- function(kappa1, kappa2, kappa3, N) {
+  if (kappa1 > 150 | kappa2 > 150 | abs(kappa3) > 150) {
+    vmsin_var_cor_singlepar_large(kappa1, kappa2, kappa3, N)
+  } else {
+    sobol_grid <- sobol_2d_1e4_from_seed_1
+    vmsin_var_cor_singlepar_cpp(kappa1, kappa2, kappa3,
+                                sobol_grid, 1)
+  }
+
 }
