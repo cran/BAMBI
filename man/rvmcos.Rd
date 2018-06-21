@@ -5,9 +5,11 @@
 \alias{dvmcos}
 \title{The bivariate von Mises cosine model}
 \usage{
-rvmcos(n, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0)
+rvmcos(n, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0,
+  method = NULL)
 
-dvmcos(x, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0)
+dvmcos(x, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0,
+  log = FALSE, ...)
 }
 \arguments{
 \item{n}{number of observations. Ignored if at least one of the other parameters have length k > 1, in which
@@ -17,8 +19,14 @@ case, all the parameters are recycled to length k to produce k random variates.}
 
 \item{mu1, mu2}{vectors of mean parameters.}
 
+\item{method}{Rejection sampling method to be used. Available choices are \code{"naive"} or \code{"vmprop"}. See details.}
+
 \item{x}{bivariate vector  or a two-column matrix with each row being a bivariate vector of angles
 (in radians)  where the densities are to be evaluated.}
+
+\item{log}{logical. Should the log density be returned instead?}
+
+\item{...}{additional arguments to be passed to dvmcos. See details.}
 }
 \value{
 \code{dvmcos} gives the density  and \code{rvmcos} generates random deviates.
@@ -32,6 +40,16 @@ The bivariate von Mises cosine model density at the point \eqn{x = (x_1, x_2)} i
 where
 \deqn{T_1 = x_1 - \mu_1;  T_2 = x_2 - \mu_2}
 and \eqn{C_c (\kappa_1, \kappa_2, \kappa_3)} denotes the normalizing constant for the cosine model.
+
+#' Because \eqn{C_c} involves an infinite series with product of Bessel functions,
+if \code{kappa3 < -5} or \code{max(kappa1, kappa2, abs(kappa3)) > 50}, \eqn{C_c} is evaluated
+numerically via (quasi) Monte carlo method for
+numerical stability. These (quasi) random numbers can be provided through the
+argument \code{qrnd}, which must be a two column matrix, with each element being
+a  (quasi) random number between 0 and 1. Alternatively, if \code{n_qrnd} is
+provided (and \code{qrnd} is missing), a two dimensional sobol sequence of size \code{n_qrnd} is
+generated via the function \link{sobol} from the R package \code{qrng}. If none of \code{qrnd}
+or \code{n_qrnd} is available, a two dimensional sobol sequence of size 1e4 is used.
 }
 \examples{
 kappa1 <- c(1, 2, 3)
@@ -63,7 +81,7 @@ dvmcos(x[1, ], kappa1, kappa2, kappa3, mu1, mu2)
 # length, and dvmcos returns a vector with ith element being the
 # density evaluated at ith row of x with parameter values kappa1[i],
 # kappa2[i], # kappa3[i], mu1[i] and mu2[i]
-dvmcos(x[1, ], kappa1, kappa2, kappa3, mu1, mu2)
+dvmcos(x, kappa1, kappa2, kappa3, mu1, mu2)
 
 # when parameters are all scalars, number of observations generated
 # by rvmcos is n

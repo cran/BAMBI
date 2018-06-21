@@ -1,12 +1,11 @@
 #' @useDynLib BAMBI, .registration = TRUE
 #' @import stats
-#' @importFrom graphics contour hist plot points persp
+#' @import graphics
 #' @importFrom grDevices colorRampPalette
 #' @importFrom methods is
 #' @importFrom utils tail txtProgressBar
 #' @importFrom parallel detectCores
 #' @importFrom Rcpp sourceCpp evalCpp
-#' @importFrom label.switching dataBased ecr.iterative.1
 
 
 
@@ -16,22 +15,27 @@ NULL
 #' @export
 print.angmcmc <- function(x, ...) {
 
+  # browser()
   output <-  paste("Dataset consists of", x$n.data, "observations.")
 
 
   if(grepl(x$method, "hmc")) {
-    output[2] <- paste(x$ncomp, "cluster", x$model, "mixture fitted via HMC for model parameters.")
+    output[2] <- paste(x$ncomp, "cluster", x$model, "mixture fitted via HMC for model parameters. Number of chain(s) = ",
+                       paste0(x$n.chains, "."))
 
     if(x$epsilon.random) {
       output[3] <- paste("epsilon chosen randomly at each iteration with average epsilon =",
-                         format(x$epsilon, scientific=TRUE, digits = 2))
+                         paste0(format(x$epsilon, scientific=TRUE, digits = 2), collapse = ", "))
     } else {
-        output[3] <- paste("epsilon fixed at", x$epsilon)
+        output[3] <- paste("epsilon fixed at", x$epsilon )
     }
     if(x$L.random){
-      output[4] <- paste("L chosen at each iteration with average L =", x$L)
+      output[4] <- paste("L chosen randomly at each iteration with average L =",
+                         paste(round(x$L, 2), collapse = ", "),
+                         "across the ", x$n.chains, "chain(s).")
     } else {
-      output[4] <- paste("L fixed at", x$L)
+      output[4] <- paste("L fixed at", paste(x$L, collapse = ", "),
+                         "across the", x$n.chains, "chain(s).")
     }
     output[5] <- paste("acceptance rate for model parameters = ",
                        round(100*mean(x$accpt.modelpar), 2), "%.")
@@ -40,20 +44,18 @@ print.angmcmc <- function(x, ...) {
 
    else if(grepl(x$method, "rwmh")) {
 
-    output[2] <- paste(x$ncomp, "cluster", x$model, "mixture fitted via RWMH for model parameters.")
+    output[2] <- paste(x$ncomp, "cluster", x$model, "mixture fitted via RWMH for model parameters. Number of chain(s) = ",
+                       paste0(x$n.chains, "."))
 
     output[3] <- paste("proposals are independent normal with variances",
                        paste(format(x$propscale.final, scientific=TRUE, digits = 2), sep = "", collapse = ", "),
                        "for", paste(x$par.name[-1], sep = "", collapse=", "))
 
-    output[4] <- paste("acceptance rate for concentration parameters = ",
-                       round(100*mean(x$accpt.kappa), 2), "%.")
-
-    output[5] <- paste("acceptance rate for mean parameters = ",
-                       round(100*mean(x$accpt.mu), 2), "%.")
+    output[4] <- paste("acceptance rate for model parameters = ",
+                       round(100*mean(x$accpt.modelpar), 2), "%.")
   }
 
-  output[6] <- paste("Number of iterations =", x$n.iter)
+  output[5] <- paste("Number of iterations =", x$n.iter)
   cat(output, sep = "\n")
 }
 
@@ -79,9 +81,9 @@ print.stepfit <- function(x, ...)
 
 
 #' Angular MCMC (\code{angmcmc}) Object
-#' @exportClass angmcmc
-#' @description Checking if an R object is angmcmc
+#' @description Checking for and creating an angmcmc object
 #' @param object any R object
+#' @param ... arguments required to make an angmcmc object. See details
 #' @return logical. Is the input an angmcmc object?
 #' @details
 #' \code{angmcmc} objects are classified lists that are created when any of the five mixture model fitting
@@ -97,12 +99,18 @@ print.stepfit <- function(x, ...)
 #' @examples
 #' # illustration only - more iterations needed for convergence
 #' fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-#'                              ncores = 1)
+#'                              n.chains = 1)
 #' is.angmcmc(fit.vmsin.20)
 #' @export
 
 is.angmcmc <- function(object) {
-  methods::is(object, "angmcmc")
+  inherits(object, "angmcmc")
 }
 
-
+#' @rdname is.angmcmc
+#' @export
+angmcmc <- function(...) {
+ ell <- list(...)
+ class(ell) <- "angmcmc"
+ ell
+}

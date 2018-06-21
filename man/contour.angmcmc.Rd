@@ -4,25 +4,31 @@
 \alias{contour.angmcmc}
 \title{Contour plot for angmcmc objects with bivariate data}
 \usage{
-\method{contour}{angmcmc}(x, fn = mean, show.data = TRUE, nlevels = 20,
-  levels, burnin = 1/3, thin = 1, cex = 1, col = "red", ...)
+\method{contour}{angmcmc}(x, fn = mean, show.data = TRUE, xpoints = seq(0,
+  2 * pi, length.out = 100), ypoints = seq(0, 2 * pi, length.out = 100),
+  levels, nlevels = 20, cex = 1, col = "red", ...)
 }
 \arguments{
 \item{x}{angular MCMC object (with bivariate data).}
 
-\item{fn}{function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean.}
+\item{fn}{function, or a single character string specifying its name, to evaluate on MCMC samples to estimate
+parameters.  Defaults to \code{mean}, which computes the estimated posterior mean.
+Note that if \code{fn = "MODE"} (warning: not \code{"mode"}) or \code{fn = "MAP"}, then the maximum aposteriori estimate (MAP) is
+calculated.}
 
 \item{show.data}{logical. Should the data points be added to the contour plot? Ignored if \code{object} is NOT supplied.}
 
-\item{nlevels}{number of contour levels desired \strong{if} levels is not supplied;
-passed to the \link{contour} function in graphics.}
+\item{xpoints}{Points on the first (x-) coordinate where the density is to be evaluated.
+Default to seq(0, 2*pi, length.out=100).}
+
+\item{ypoints}{Points on the first (x-) coordinate where the density is to be evaluated.
+Default to seq(0, 2*pi, length.out=100).}
 
 \item{levels}{numeric vector of levels at which to draw contour lines;
 passed to the \link{contour} function in graphics.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
-
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{nlevels}{number of contour levels desired \strong{if} levels is not supplied;
+passed to the \link{contour} function in graphics.}
 
 \item{cex, col}{graphical parameters passed to \code{\link{points}} in graphics for plotting the data points.
 Ignored if {show.data == FALSE}.}
@@ -43,8 +49,8 @@ by applying \code{fn} on the MCMC samples, yielding the (consistent) Bayes estim
 # first fit a vmsin mixture model
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
-# now create a contour plot with the default first 1/3 as burn-in and thin = 1
+                             n.chains = 1)
+# now create a contour plot
 contour(fit.vmsin.20)
 
 }

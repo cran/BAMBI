@@ -7,7 +7,7 @@
 \usage{
 rwnormmix(n = 1, kappa, mu, pmix)
 
-dwnormmix(x, kappa, mu, pmix, int.displ)
+dwnormmix(x, kappa, mu, pmix, int.displ = 3, log = FALSE)
 }
 \arguments{
 \item{n}{number of observations. Ignored if at least one of the other parameters have length k > 1, in which
@@ -22,6 +22,8 @@ case, all the parameters are recycled to length k to produce k random variates.}
 \item{x}{vector of angles (in radians) where the densities are to be evaluated.}
 
 \item{int.displ}{integer displacement. The allowed values are 1, 2, 3, 4 and 5. Default is 3.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dwnormmix} computes the density  and \code{rwnormmix} generates random deviates from the mixture density.

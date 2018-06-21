@@ -4,8 +4,7 @@
 \alias{extractsamples}
 \title{Extract MCMC samples for parameters from an angmcmc object}
 \usage{
-extractsamples(object, par.name = NULL, comp.label = NULL,
-               burnin = 1/3, thin = 1)
+extractsamples(object, par.name, comp.label, chain.no, drop = TRUE, ...)
 }
 \arguments{
 \item{object}{angular MCMC object}
@@ -15,13 +14,21 @@ extractsamples(object, par.name = NULL, comp.label = NULL,
 \item{comp.label}{vector of component labels (positive integers, e.g., \code{1, 2, ...}) for which point estimates are to be computed.
 If \code{NULL}, results for all components are provided.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
+\item{chain.no}{vector of chain numbers whose samples are to be be used.
+in the estimation. By default all chains are used.}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{drop}{logical. Should the dimension of the output be dropped, if \code{par.name},
+\code{comp.label} or \code{chain.no} has a single level?}
+
+\item{...}{additional arguments to be passed to the function.}
 }
 \value{
-Returns a  matrix (vector) if one (both) of \code{par.name} and \code{comp.label} is of length 1, and a three dimensional array with
-third dimension corresponding to iterations if both \code{par.name} and \code{comp.label} have length \code{>1}.
+Returns  a four dimensional array with
+
+dimension 1 - model parameters and mixing proportions
+dimention 2 - components
+dimension 3 - MCMC iterations
+dimension 4 - chain number
 }
 \description{
 Extract MCMC samples for parameters from an angmcmc object
@@ -34,7 +41,7 @@ available in \code{object}.
 # first fit a vmsin mixture model
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 # extract Markov chain realizations for kappa1 from component 1
 extr_kappa1_1 <- extractsamples(fit.vmsin.20, "kappa1", 1)
 # for kappa1 from component from all components

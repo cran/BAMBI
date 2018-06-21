@@ -7,7 +7,7 @@
 \usage{
 rvm(n, kappa = 1, mu = 0)
 
-dvm(x, kappa = 1, mu = 0)
+dvm(x, kappa = 1, mu = 0, log = FALSE)
 }
 \arguments{
 \item{n}{number of observations. Ignored if at least one of the other parameters have length k > 1, in which
@@ -18,6 +18,8 @@ case, all the parameters are recycled to length k to produce k random variates.}
 \item{mu}{vector of means.}
 
 \item{x}{vector of angles (in radians) where the densities are to be evaluated.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dvm} gives the density  and \code{rvm} generates random deviates.

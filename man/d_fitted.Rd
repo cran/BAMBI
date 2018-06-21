@@ -5,21 +5,25 @@
 \alias{r_fitted}
 \title{Density and random deviates from an angmcmc object}
 \usage{
-d_fitted(x, object, fn = mean, burnin = 1/3, thin = 1)
+d_fitted(x, object, fn = mean, log = FALSE, ...)
 
-r_fitted(n, object, fn = mean, burnin = 1/3, thin = 1)
+r_fitted(n = 1, object, fn = mean, ...)
 }
 \arguments{
-\item{x}{vector (if univariate) or a two column matrix (if bivariate, with each row a 2-D vector) of points where the
+\item{x}{vector, if univariate or a two column matrix, if bivariate, with each row a 2-D vector, (can
+also be a data frame of similar dimensions) of points where the
 densities are to be computed.}
 
 \item{object}{angular MCMC object. The dimension of the model must match with \code{x}.}
 
-\item{fn}{function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean.}
+\item{fn}{function, or a single character string specifying its name, to evaluate on MCMC samples to estimate
+parameters.  Defaults to \code{mean}, which computes the estimated posterior mean.
+Note that if \code{fn = "MODE"} (warning: not \code{"mode"}) or \code{fn = "MAP"}, then the maximum aposteriori estimate (MAP) is
+calculated.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
+\item{log}{logical. Should the log density be returned instead?}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{...}{additional arguments to be passed to the function.}
 
 \item{n}{number of observations to be generated.}
 }
@@ -41,7 +45,7 @@ The random deviates are generated from the estimated mixture density \eqn{f(x|\h
 set.seed(1)
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 d_fitted(c(0,0), fit.vmsin.20)
 r_fitted(10, fit.vmsin.20)
 }

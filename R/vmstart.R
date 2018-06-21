@@ -5,8 +5,15 @@ Ainv <- function(x) {
   else ((1.28 - 0.53*x^2) * tan(x*pi/2))
 }
 
+
 #' @keywords internal
-start_par_univm <- function(data.sub) {
+A_bessel <- function(x){
+  besselI(x, 1, TRUE)/besselI(x, 0, TRUE)
+}
+
+
+#' @keywords internal
+start_par_vm <- function(data.sub) {
   x1 <- data.sub
   Sbar <- mean(sin(x1))
   Cbar <- mean(cos(x1))
@@ -17,26 +24,26 @@ start_par_univm <- function(data.sub) {
 }  #starting parameters from  a dataset
 
 #' @keywords internal
-start_clus_kmeans_univm <- function(data.full, comp = 2, nstart = 10){
+start_clus_kmeans_vm <- function(data.full, comp = 2, nstart = 10){
   data.full.cart <- t(sapply(data.full, function(x) c(cos(x), sin(x))))
   data.kmean <- kmeans(data.full.cart, centers = comp, nstart = nstart)
   ids <- data.kmean$cluster
   clust.ind <- lapply(1:comp, function(i) which(ids == i))
-  par <- sapply(1:length(clust.ind), function(m) start_par_univm(data.full[clust.ind[[m]]]))
+  par <- sapply(1:length(clust.ind), function(m) start_par_vm(data.full[clust.ind[[m]]]))
   pi.mix <- listLen(clust.ind)/length(unlist(clust.ind))
   order.conc <- order(order(apply(par, 2, function(x) sum_sq(x[1:3]))))
   list("par.mat" = par[,order.conc], "pi.mix" = pi.mix[order.conc], "clust.ind" = clust.ind[order.conc], "id" = ids)
 }  #kmeans, then start_par for each cluster
 
 #' @keywords internal
-start_clus_rand_univm <- function(data.full, comp = 2, nstart = 10) {
+start_clus_rand_vm <- function(data.full, comp = 2, nstart = 10) {
   rand.pi  <- runif(comp, 1/(2*comp), 2/comp)
   rand.pi <- rand.pi/sum(rand.pi)
 
   rand.multinom <- t(rmultinom(length(data.full), 1, rand.pi))
   ids <- apply(rand.multinom, 1, which.max)
   clust.ind <- lapply(1:comp, function(i) which(ids == i))
-  par <- sapply(1:length(clust.ind), function(m) start_par_univm(data.full[clust.ind[[m]]]))
+  par <- sapply(1:length(clust.ind), function(m) start_par_vm(data.full[clust.ind[[m]]]))
   pi.mix <- listLen(clust.ind)/length(unlist(clust.ind))
   order.conc <- order(order(apply(par, 2, function(x) sum_sq(x[1:3]))))
   list("par.mat" = par[,order.conc], "pi.mix" = pi.mix[order.conc], "clust.ind" = clust.ind[order.conc], "id" = ids)
@@ -101,7 +108,8 @@ start_clus_rand_vmsin <- function(data.full, comp = 2, nstart = 10) {
 
 #' @keywords internal
 start_par_vmcos <- function(data.sub) {
-  x1 <- data.sub[,1]; y1 <- data.sub[,2]
+  x1 <- data.sub[,1];
+  y1 <- data.sub[,2]
   Sbarphi <- mean(sin(x1))
   Cbarphi <- mean(cos(x1))
   phibar <- atan(Sbarphi/Cbarphi) + pi * (Cbarphi < 0)
@@ -153,7 +161,7 @@ start_clus_kmeans_vmcos <- function(data.full, comp = 2, nstart = 10){
 }  #kmeans, then start_par for each cluster
 
 #' @keywords internal
-start_clus_rand_vmcos <- function(data.full, comp = 2){
+start_clus_rand_vmcos <- function(data.full, comp = 2, nstart = 10){
   rand.pi  <- runif(comp, 1/(2*comp), 2/comp)
   rand.pi <- rand.pi/sum(rand.pi)
 

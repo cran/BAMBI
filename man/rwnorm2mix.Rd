@@ -5,9 +5,9 @@
 \alias{dwnorm2mix}
 \title{The bivariate Wrapped Normal mixtures}
 \usage{
-rwnorm2mix(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
+rwnorm2mix(n, kappa1, kappa2, kappa3, mu1, mu2, pmix, ...)
 
-dwnorm2mix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix, int.displ)
+dwnorm2mix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix, int.displ, log = FALSE)
 }
 \arguments{
 \item{n}{number of observations.}
@@ -18,10 +18,14 @@ dwnorm2mix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix, int.displ)
 
 \item{pmix}{vector of mixture proportions.}
 
+\item{...}{additional arguments passed to \link{rmvnorm} from package \code{mvtnorm}}
+
 \item{x}{matrix of angles (in radians) where the density is to be evaluated, with each row being a
 single bivariate vector of angles.}
 
 \item{int.displ}{integer displacement. The allowed values are 1, 2, 3, 4 and 5. Default is 3.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dwnorm2mix} computes the density  and \code{rwnorm2mix} generates random deviates from the mixture density.

@@ -4,16 +4,12 @@
 \alias{DIC}
 \title{Deviance Information Criterion (DIC) for angmcmc objects}
 \usage{
-DIC(object, form = 1, burnin = 1/3, thin = 1, ...)
+DIC(object, form = 2, ...)
 }
 \arguments{
 \item{object}{angular MCMC object.}
 
-\item{form}{form of DIC to use. Available choices are 1 (default) and 2. See details.}
-
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
-
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{form}{form of DIC to use. Available choices are 1 and 2 (default). See details.}
 
 \item{...}{additional model specific arguments to be passed to \code{DIC}. For example, \code{int.displ}
 specifies integer dispacement in wnorm and wnorm2 models. See \link{fit_wnormmix} and
@@ -44,7 +40,7 @@ is only valid when the posterior distribution is approximately normal.
 \examples{
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 DIC(fit.vmsin.20)
 
 }

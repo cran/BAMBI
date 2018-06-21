@@ -7,7 +7,7 @@
 \usage{
 rvmmix(n, kappa, mu, pmix)
 
-dvmmix(x, kappa, mu, pmix)
+dvmmix(x, kappa, mu, pmix, log = FALSE)
 }
 \arguments{
 \item{n}{number of observations. Ignored if at least one of the other parameters have length k > 1, in which
@@ -20,6 +20,8 @@ case, all the parameters are recycled to length k to produce k random variates.}
 \item{pmix}{vector of mixing proportions.}
 
 \item{x}{vector of angles (in radians) where the densities are to be evaluated.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dvmmix} computes the density  and \code{rvmmix} generates random deviates from the mixture density.

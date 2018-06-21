@@ -5,10 +5,10 @@
 \alias{dwnorm2}
 \title{The bivariate Wrapped Normal distribution}
 \usage{
-rwnorm2(n, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0)
+rwnorm2(n, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0, ...)
 
 dwnorm2(x, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0,
-  int.displ)
+  int.displ, log = FALSE)
 }
 \arguments{
 \item{n}{number of observations. Ignored if at least one of the other parameters have length k > 1, in which
@@ -19,10 +19,14 @@ and \code{kappa3^2 < kappa1*kappa2}.}
 
 \item{mu1, mu2}{vectors of mean parameters.}
 
+\item{...}{additional arguments passed to \link{rmvnorm} from package \code{mvtnorm}}
+
 \item{x}{bivariate vector  or a two-column matrix with each row being a bivariate vector of angles
 (in radians)  where the densities are to be evaluated.}
 
 \item{int.displ}{integer displacement. The allowed values are 1, 2, 3, 4 and 5. Default is 3.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dwnorm2} gives the density  and \code{rwnorm2} generates random deviates.
@@ -79,7 +83,7 @@ dwnorm2(x[1, ], kappa1, kappa2, kappa3, mu1, mu2)
 # length, and dwnorm2 returns a vector of with ith element being the
 # density evaluated at ith row of x with parameter values kappa1[i],
 # kappa2[i], # kappa3[i], mu1[i] and mu2[i]
-dwnorm2(x[1, ], kappa1, kappa2, kappa3, mu1, mu2)
+dwnorm2(x, kappa1, kappa2, kappa3, mu1, mu2)
 
 # when parameters are all scalars, number of observations generated
 # by rwnorm2 is n

@@ -7,7 +7,7 @@
 \usage{
 rwnorm(n = 1, kappa = 1, mu = 0)
 
-dwnorm(x, kappa = 1, mu = 0, int.displ)
+dwnorm(x, kappa = 1, mu = 0, int.displ, log = FALSE)
 }
 \arguments{
 \item{n}{number of observations. Ignored if at least one of the other parameters have length k > 1, in which
@@ -20,6 +20,8 @@ case, all the parameters are recycled to length k to produce k random variates.}
 \item{x}{vector of angles (in radians) where the densities are to be evaluated.}
 
 \item{int.displ}{integer displacement. The allowed values are 1, 2, 3, 4 and 5. Default is 3.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dwnorm} gives the density  and \code{rwnorm} generates random deviates.

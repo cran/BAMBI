@@ -214,8 +214,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // mem_p_univm
-arma::mat mem_p_univm(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c_von, int ncores);
-RcppExport SEXP _BAMBI_mem_p_univm(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP, SEXP ncoresSEXP) {
+arma::mat mem_p_univm(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c_von);
+RcppExport SEXP _BAMBI_mem_p_univm(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -223,14 +223,38 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(mem_p_univm(data, par, pi, log_c_von, ncores));
+    rcpp_result_gen = Rcpp::wrap(mem_p_univm(data, par, pi, log_c_von));
     return rcpp_result_gen;
 END_RCPP
 }
-// llik_univm_full
-double llik_univm_full(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c, int ncores);
-RcppExport SEXP _BAMBI_llik_univm_full(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP ncoresSEXP) {
+// llik_univm_one_comp
+double llik_univm_one_comp(arma::vec data, arma::vec par_vec, double log_c);
+RcppExport SEXP _BAMBI_llik_univm_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP log_cSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
+    Rcpp::traits::input_parameter< double >::type log_c(log_cSEXP);
+    rcpp_result_gen = Rcpp::wrap(llik_univm_one_comp(data, par_vec, log_c));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grad_llik_univm_C
+arma::vec grad_llik_univm_C(arma::vec data, arma::vec par);
+RcppExport SEXP _BAMBI_grad_llik_univm_C(SEXP dataSEXP, SEXP parSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
+    rcpp_result_gen = Rcpp::wrap(grad_llik_univm_C(data, par));
+    return rcpp_result_gen;
+END_RCPP
+}
+// llik_univm_contri_C
+arma::vec llik_univm_contri_C(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c);
+RcppExport SEXP _BAMBI_llik_univm_contri_C(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -238,22 +262,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c(log_cSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(llik_univm_full(data, par, pi, log_c, ncores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// grad_univm_all_comp
-arma::mat grad_univm_all_comp(arma::vec data, arma::mat par_mat, arma::vec pi, int ncores);
-RcppExport SEXP _BAMBI_grad_univm_all_comp(SEXP dataSEXP, SEXP par_matSEXP, SEXP piSEXP, SEXP ncoresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par_mat(par_matSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(grad_univm_all_comp(data, par_mat, pi, ncores));
+    rcpp_result_gen = Rcpp::wrap(llik_univm_contri_C(data, par, pi, log_c));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -345,39 +354,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// uniwnormmix
-double uniwnormmix(double x, arma::mat par, arma::vec pi, arma::vec log_c_von, arma::vec omega_2pi_1d);
-RcppExport SEXP _BAMBI_uniwnormmix(SEXP xSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP, SEXP omega_2pi_1dSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type x(xSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type omega_2pi_1d(omega_2pi_1dSEXP);
-    rcpp_result_gen = Rcpp::wrap(uniwnormmix(x, par, pi, log_c_von, omega_2pi_1d));
-    return rcpp_result_gen;
-END_RCPP
-}
-// uniwnormmix_manyx
-arma::vec uniwnormmix_manyx(arma::vec x, arma::mat par, arma::vec pi, arma::vec log_c, arma::vec omega_2pi_1d);
-RcppExport SEXP _BAMBI_uniwnormmix_manyx(SEXP xSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP omega_2pi_1dSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_c(log_cSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type omega_2pi_1d(omega_2pi_1dSEXP);
-    rcpp_result_gen = Rcpp::wrap(uniwnormmix_manyx(x, par, pi, log_c, omega_2pi_1d));
-    return rcpp_result_gen;
-END_RCPP
-}
 // mem_p_uniwnorm
-arma::mat mem_p_uniwnorm(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c_von, arma::vec omega_2pi_1d, int ncores);
-RcppExport SEXP _BAMBI_mem_p_uniwnorm(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP, SEXP omega_2pi_1dSEXP, SEXP ncoresSEXP) {
+arma::mat mem_p_uniwnorm(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c_von, arma::vec omega_2pi_1d);
+RcppExport SEXP _BAMBI_mem_p_uniwnorm(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP, SEXP omega_2pi_1dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -386,14 +365,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type omega_2pi_1d(omega_2pi_1dSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(mem_p_uniwnorm(data, par, pi, log_c_von, omega_2pi_1d, ncores));
+    rcpp_result_gen = Rcpp::wrap(mem_p_uniwnorm(data, par, pi, log_c_von, omega_2pi_1d));
     return rcpp_result_gen;
 END_RCPP
 }
-// llik_uniwnorm_full
-double llik_uniwnorm_full(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c, arma::vec omega_2pi_1d, int ncores);
-RcppExport SEXP _BAMBI_llik_uniwnorm_full(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP omega_2pi_1dSEXP, SEXP ncoresSEXP) {
+// llik_uniwnorm_contri_C
+arma::vec llik_uniwnorm_contri_C(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c, arma::vec omega_2pi_1d);
+RcppExport SEXP _BAMBI_llik_uniwnorm_contri_C(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP omega_2pi_1dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -402,23 +380,34 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c(log_cSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type omega_2pi_1d(omega_2pi_1dSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(llik_uniwnorm_full(data, par, pi, log_c, omega_2pi_1d, ncores));
+    rcpp_result_gen = Rcpp::wrap(llik_uniwnorm_contri_C(data, par, pi, log_c, omega_2pi_1d));
     return rcpp_result_gen;
 END_RCPP
 }
-// grad_uniwnorm_all_comp
-arma::mat grad_uniwnorm_all_comp(arma::vec data, arma::mat par_mat, arma::vec pi, arma::vec omega_2pi_1d, int ncores);
-RcppExport SEXP _BAMBI_grad_uniwnorm_all_comp(SEXP dataSEXP, SEXP par_matSEXP, SEXP piSEXP, SEXP omega_2pi_1dSEXP, SEXP ncoresSEXP) {
+// llik_uniwnorm_one_comp
+double llik_uniwnorm_one_comp(arma::vec data, arma::vec par_vec, double log_c, arma::vec omega_2pi_1d);
+RcppExport SEXP _BAMBI_llik_uniwnorm_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP log_cSEXP, SEXP omega_2pi_1dSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par_mat(par_matSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
+    Rcpp::traits::input_parameter< double >::type log_c(log_cSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type omega_2pi_1d(omega_2pi_1dSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(grad_uniwnorm_all_comp(data, par_mat, pi, omega_2pi_1d, ncores));
+    rcpp_result_gen = Rcpp::wrap(llik_uniwnorm_one_comp(data, par_vec, log_c, omega_2pi_1d));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grad_llik_uniwnorm_C
+arma::vec grad_llik_uniwnorm_C(arma::vec data, arma::vec par, arma::vec omega_2pi_1d);
+RcppExport SEXP _BAMBI_grad_llik_uniwnorm_C(SEXP dataSEXP, SEXP parSEXP, SEXP omega_2pi_1dSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type omega_2pi_1d(omega_2pi_1dSEXP);
+    rcpp_result_gen = Rcpp::wrap(grad_llik_uniwnorm_C(data, par, omega_2pi_1d));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -447,8 +436,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // const_vmcos_mc
-double const_vmcos_mc(double k1, double k2, double k3, arma::mat uni_rand, int ncores);
-RcppExport SEXP _BAMBI_const_vmcos_mc(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+double const_vmcos_mc(double k1, double k2, double k3, arma::mat uni_rand);
+RcppExport SEXP _BAMBI_const_vmcos_mc(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -456,14 +445,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
     Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
     Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(const_vmcos_mc(k1, k2, k3, uni_rand, ncores));
+    rcpp_result_gen = Rcpp::wrap(const_vmcos_mc(k1, k2, k3, uni_rand));
     return rcpp_result_gen;
 END_RCPP
 }
 // const_vmcos
-double const_vmcos(double k1, double k2, double k3, arma::mat uni_rand, int ncores);
-RcppExport SEXP _BAMBI_const_vmcos(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+double const_vmcos(double k1, double k2, double k3, arma::mat uni_rand);
+RcppExport SEXP _BAMBI_const_vmcos(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP uni_randSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -471,21 +459,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
     Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
     Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(const_vmcos(k1, k2, k3, uni_rand, ncores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// d_const_vmcos_k1_anltc
-double d_const_vmcos_k1_anltc(double k1, double k2, double k3);
-RcppExport SEXP _BAMBI_d_const_vmcos_k1_anltc(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
-    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
-    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
-    rcpp_result_gen = Rcpp::wrap(d_const_vmcos_k1_anltc(k1, k2, k3));
+    rcpp_result_gen = Rcpp::wrap(const_vmcos(k1, k2, k3, uni_rand));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -531,15 +505,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // log_const_vmcos_all
-arma::vec log_const_vmcos_all(arma::mat par_mat, arma::mat uni_rand, int ncores);
-RcppExport SEXP _BAMBI_log_const_vmcos_all(SEXP par_matSEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+arma::vec log_const_vmcos_all(arma::mat par_mat, arma::mat uni_rand);
+RcppExport SEXP _BAMBI_log_const_vmcos_all(SEXP par_matSEXP, SEXP uni_randSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type par_mat(par_matSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(log_const_vmcos_all(par_mat, uni_rand, ncores));
+    rcpp_result_gen = Rcpp::wrap(log_const_vmcos_all(par_mat, uni_rand));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -607,6 +580,50 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rcos_unimodal
+arma::mat rcos_unimodal(int n, double k1, double k2, double k3, double mu1, double mu2, double kappa_opt, double log_I0_kappa_opt, double logK, double log_const_vmcos);
+RcppExport SEXP _BAMBI_rcos_unimodal(SEXP nSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP kappa_optSEXP, SEXP log_I0_kappa_optSEXP, SEXP logKSEXP, SEXP log_const_vmcosSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type kappa_opt(kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type log_I0_kappa_opt(log_I0_kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type logK(logKSEXP);
+    Rcpp::traits::input_parameter< double >::type log_const_vmcos(log_const_vmcosSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcos_unimodal(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmcos));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rcos_bimodal
+arma::mat rcos_bimodal(int n, double k1, double k2, double k3, double mu1, double mu2, double kappa_opt, double log_I0_kappa_opt, double logK, double log_const_vmcos, double mode_1, double mode_2, double vmpropn, double unifpropn);
+RcppExport SEXP _BAMBI_rcos_bimodal(SEXP nSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP kappa_optSEXP, SEXP log_I0_kappa_optSEXP, SEXP logKSEXP, SEXP log_const_vmcosSEXP, SEXP mode_1SEXP, SEXP mode_2SEXP, SEXP vmpropnSEXP, SEXP unifpropnSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type kappa_opt(kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type log_I0_kappa_opt(log_I0_kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type logK(logKSEXP);
+    Rcpp::traits::input_parameter< double >::type log_const_vmcos(log_const_vmcosSEXP);
+    Rcpp::traits::input_parameter< double >::type mode_1(mode_1SEXP);
+    Rcpp::traits::input_parameter< double >::type mode_2(mode_2SEXP);
+    Rcpp::traits::input_parameter< double >::type vmpropn(vmpropnSEXP);
+    Rcpp::traits::input_parameter< double >::type unifpropn(unifpropnSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcos_bimodal(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmcos, mode_1, mode_2, vmpropn, unifpropn));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcos_onepar
 arma::mat rcos_onepar(int n, double k1, double k2, double k3, double mu1, double mu2, double I_upper_bd);
 RcppExport SEXP _BAMBI_rcos_onepar(SEXP nSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP I_upper_bdSEXP) {
@@ -624,25 +641,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// rcos_manypar
-arma::mat rcos_manypar(arma::vec k1, arma::vec k2, arma::vec k3, arma::vec mu1, arma::vec mu2, arma::vec I_upper_bd);
-RcppExport SEXP _BAMBI_rcos_manypar(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP I_upper_bdSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type k1(k1SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type k2(k2SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type k3(k3SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type mu1(mu1SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type mu2(mu2SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type I_upper_bd(I_upper_bdSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcos_manypar(k1, k2, k3, mu1, mu2, I_upper_bd));
-    return rcpp_result_gen;
-END_RCPP
-}
 // mem_p_cos
-arma::mat mem_p_cos(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c_von, int ncores);
-RcppExport SEXP _BAMBI_mem_p_cos(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP, SEXP ncoresSEXP) {
+arma::mat mem_p_cos(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c_von);
+RcppExport SEXP _BAMBI_mem_p_cos(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -650,14 +651,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(mem_p_cos(data, par, pi, log_c_von, ncores));
+    rcpp_result_gen = Rcpp::wrap(mem_p_cos(data, par, pi, log_c_von));
     return rcpp_result_gen;
 END_RCPP
 }
-// llik_vmcos_full
-double llik_vmcos_full(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c, int ncores);
-RcppExport SEXP _BAMBI_llik_vmcos_full(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP ncoresSEXP) {
+// llik_vmcos_contri_C
+arma::vec llik_vmcos_contri_C(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c);
+RcppExport SEXP _BAMBI_llik_vmcos_contri_C(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -665,67 +665,33 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c(log_cSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(llik_vmcos_full(data, par, pi, log_c, ncores));
+    rcpp_result_gen = Rcpp::wrap(llik_vmcos_contri_C(data, par, pi, log_c));
     return rcpp_result_gen;
 END_RCPP
 }
-// grad_log_vmcos_one_comp_i
-arma::vec grad_log_vmcos_one_comp_i(double x, double y, arma::vec par, double c_vmcos, arma::vec del_const_vmcos);
-RcppExport SEXP _BAMBI_grad_log_vmcos_one_comp_i(SEXP xSEXP, SEXP ySEXP, SEXP parSEXP, SEXP c_vmcosSEXP, SEXP del_const_vmcosSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type x(xSEXP);
-    Rcpp::traits::input_parameter< double >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
-    Rcpp::traits::input_parameter< double >::type c_vmcos(c_vmcosSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type del_const_vmcos(del_const_vmcosSEXP);
-    rcpp_result_gen = Rcpp::wrap(grad_log_vmcos_one_comp_i(x, y, par, c_vmcos, del_const_vmcos));
-    return rcpp_result_gen;
-END_RCPP
-}
-// grad_vmcos_all_comp
-arma::mat grad_vmcos_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi, arma::mat uni_rand, int ncores);
-RcppExport SEXP _BAMBI_grad_vmcos_all_comp(SEXP dataSEXP, SEXP par_matSEXP, SEXP piSEXP, SEXP uni_randSEXP, SEXP ncoresSEXP) {
+// llik_vmcos_one_comp
+double llik_vmcos_one_comp(arma::mat data, arma::vec par_vec, double log_c);
+RcppExport SEXP _BAMBI_llik_vmcos_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP log_cSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par_mat(par_matSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
+    Rcpp::traits::input_parameter< double >::type log_c(log_cSEXP);
+    rcpp_result_gen = Rcpp::wrap(llik_vmcos_one_comp(data, par_vec, log_c));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grad_llik_vmcos_C
+arma::vec grad_llik_vmcos_C(arma::mat data, arma::vec par, arma::mat uni_rand);
+RcppExport SEXP _BAMBI_grad_llik_vmcos_C(SEXP dataSEXP, SEXP parSEXP, SEXP uni_randSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type uni_rand(uni_randSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(grad_vmcos_all_comp(data, par_mat, pi, uni_rand, ncores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// vmcosmix
-double vmcosmix(double x, double y, arma::mat par, arma::vec pi, arma::vec log_c_von);
-RcppExport SEXP _BAMBI_vmcosmix(SEXP xSEXP, SEXP ySEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type x(xSEXP);
-    Rcpp::traits::input_parameter< double >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    rcpp_result_gen = Rcpp::wrap(vmcosmix(x, y, par, pi, log_c_von));
-    return rcpp_result_gen;
-END_RCPP
-}
-// vmcosmix_manyx
-arma::vec vmcosmix_manyx(arma::mat x, arma::mat par, arma::vec pi, arma::vec log_c_von);
-RcppExport SEXP _BAMBI_vmcosmix_manyx(SEXP xSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    rcpp_result_gen = Rcpp::wrap(vmcosmix_manyx(x, par, pi, log_c_von));
+    rcpp_result_gen = Rcpp::wrap(grad_llik_vmcos_C(data, par, uni_rand));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -772,6 +738,57 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ldcos_onex_manypar
+arma::vec ldcos_onex_manypar(arma::vec x, arma::vec k1, arma::vec k2, arma::vec k3, arma::vec mu1, arma::vec mu2, arma::vec l_const_all);
+RcppExport SEXP _BAMBI_ldcos_onex_manypar(SEXP xSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP l_const_allSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type l_const_all(l_const_allSEXP);
+    rcpp_result_gen = Rcpp::wrap(ldcos_onex_manypar(x, k1, k2, k3, mu1, mu2, l_const_all));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ldcos_manyx_onepar
+arma::vec ldcos_manyx_onepar(arma::mat x, double k1, double k2, double k3, double mu1, double mu2, double l_const);
+RcppExport SEXP _BAMBI_ldcos_manyx_onepar(SEXP xSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP l_constSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type l_const(l_constSEXP);
+    rcpp_result_gen = Rcpp::wrap(ldcos_manyx_onepar(x, k1, k2, k3, mu1, mu2, l_const));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ldcos_manyx_manypar
+arma::vec ldcos_manyx_manypar(arma::mat x, arma::vec k1, arma::vec k2, arma::vec k3, arma::vec mu1, arma::vec mu2, arma::vec l_const_all);
+RcppExport SEXP _BAMBI_ldcos_manyx_manypar(SEXP xSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP l_const_allSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type l_const_all(l_const_allSEXP);
+    rcpp_result_gen = Rcpp::wrap(ldcos_manyx_manypar(x, k1, k2, k3, mu1, mu2, l_const_all));
+    return rcpp_result_gen;
+END_RCPP
+}
 // const_vmsin
 double const_vmsin(double k1, double k2, double lambda);
 RcppExport SEXP _BAMBI_const_vmsin(SEXP k1SEXP, SEXP k2SEXP, SEXP lambdaSEXP) {
@@ -782,45 +799,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
     Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
     rcpp_result_gen = Rcpp::wrap(const_vmsin(k1, k2, lambda));
-    return rcpp_result_gen;
-END_RCPP
-}
-// d_const_vmsin_lambda
-double d_const_vmsin_lambda(double k1, double k2, double lambda);
-RcppExport SEXP _BAMBI_d_const_vmsin_lambda(SEXP k1SEXP, SEXP k2SEXP, SEXP lambdaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
-    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(d_const_vmsin_lambda(k1, k2, lambda));
-    return rcpp_result_gen;
-END_RCPP
-}
-// d_const_vmsin_k1
-double d_const_vmsin_k1(double k1, double k2, double lambda);
-RcppExport SEXP _BAMBI_d_const_vmsin_k1(SEXP k1SEXP, SEXP k2SEXP, SEXP lambdaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
-    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(d_const_vmsin_k1(k1, k2, lambda));
-    return rcpp_result_gen;
-END_RCPP
-}
-// d_const_vmsin_k2
-double d_const_vmsin_k2(double k1, double k2, double lambda);
-RcppExport SEXP _BAMBI_d_const_vmsin_k2(SEXP k1SEXP, SEXP k2SEXP, SEXP lambdaSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
-    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
-    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(d_const_vmsin_k2(k1, k2, lambda));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -907,6 +885,50 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rsin_unimodal
+arma::mat rsin_unimodal(int n, double k1, double k2, double k3, double mu1, double mu2, double kappa_opt, double log_I0_kappa_opt, double logK, double log_const_vmsin);
+RcppExport SEXP _BAMBI_rsin_unimodal(SEXP nSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP kappa_optSEXP, SEXP log_I0_kappa_optSEXP, SEXP logKSEXP, SEXP log_const_vmsinSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type kappa_opt(kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type log_I0_kappa_opt(log_I0_kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type logK(logKSEXP);
+    Rcpp::traits::input_parameter< double >::type log_const_vmsin(log_const_vmsinSEXP);
+    rcpp_result_gen = Rcpp::wrap(rsin_unimodal(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmsin));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rsin_bimodal
+arma::mat rsin_bimodal(int n, double k1, double k2, double k3, double mu1, double mu2, double kappa_opt, double log_I0_kappa_opt, double logK, double log_const_vmsin, double mode_1, double mode_2, double vmpropn, double unifpropn);
+RcppExport SEXP _BAMBI_rsin_bimodal(SEXP nSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP kappa_optSEXP, SEXP log_I0_kappa_optSEXP, SEXP logKSEXP, SEXP log_const_vmsinSEXP, SEXP mode_1SEXP, SEXP mode_2SEXP, SEXP vmpropnSEXP, SEXP unifpropnSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type kappa_opt(kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type log_I0_kappa_opt(log_I0_kappa_optSEXP);
+    Rcpp::traits::input_parameter< double >::type logK(logKSEXP);
+    Rcpp::traits::input_parameter< double >::type log_const_vmsin(log_const_vmsinSEXP);
+    Rcpp::traits::input_parameter< double >::type mode_1(mode_1SEXP);
+    Rcpp::traits::input_parameter< double >::type mode_2(mode_2SEXP);
+    Rcpp::traits::input_parameter< double >::type vmpropn(vmpropnSEXP);
+    Rcpp::traits::input_parameter< double >::type unifpropn(unifpropnSEXP);
+    rcpp_result_gen = Rcpp::wrap(rsin_bimodal(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmsin, mode_1, mode_2, vmpropn, unifpropn));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rsin_onepar
 arma::mat rsin_onepar(int n, double k1, double k2, double k3, double mu1, double mu2, double I_upper_bd);
 RcppExport SEXP _BAMBI_rsin_onepar(SEXP nSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP I_upper_bdSEXP) {
@@ -921,22 +943,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
     Rcpp::traits::input_parameter< double >::type I_upper_bd(I_upper_bdSEXP);
     rcpp_result_gen = Rcpp::wrap(rsin_onepar(n, k1, k2, k3, mu1, mu2, I_upper_bd));
-    return rcpp_result_gen;
-END_RCPP
-}
-// rsin_manypar
-arma::mat rsin_manypar(arma::vec k1, arma::vec k2, arma::vec k3, arma::vec mu1, arma::vec mu2, arma::vec I_upper_bd);
-RcppExport SEXP _BAMBI_rsin_manypar(SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP, SEXP I_upper_bdSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type k1(k1SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type k2(k2SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type k3(k3SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type mu1(mu1SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type mu2(mu2SEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type I_upper_bd(I_upper_bdSEXP);
-    rcpp_result_gen = Rcpp::wrap(rsin_manypar(k1, k2, k3, mu1, mu2, I_upper_bd));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -955,9 +961,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// llik_vmsin_full
-double llik_vmsin_full(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c, int ncores);
-RcppExport SEXP _BAMBI_llik_vmsin_full(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP ncoresSEXP) {
+// llik_vmsin_contri_C
+arma::vec llik_vmsin_contri_C(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c);
+RcppExport SEXP _BAMBI_llik_vmsin_contri_C(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -965,78 +971,32 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c(log_cSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(llik_vmsin_full(data, par, pi, log_c, ncores));
+    rcpp_result_gen = Rcpp::wrap(llik_vmsin_contri_C(data, par, pi, log_c));
     return rcpp_result_gen;
 END_RCPP
 }
 // llik_vmsin_one_comp
-double llik_vmsin_one_comp(arma::mat data, arma::vec par_vec, double log_c, int ncores);
-RcppExport SEXP _BAMBI_llik_vmsin_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP log_cSEXP, SEXP ncoresSEXP) {
+double llik_vmsin_one_comp(arma::mat data, arma::vec par_vec, double log_c);
+RcppExport SEXP _BAMBI_llik_vmsin_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP log_cSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
     Rcpp::traits::input_parameter< double >::type log_c(log_cSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(llik_vmsin_one_comp(data, par_vec, log_c, ncores));
+    rcpp_result_gen = Rcpp::wrap(llik_vmsin_one_comp(data, par_vec, log_c));
     return rcpp_result_gen;
 END_RCPP
 }
-// grad_vmsin_one_comp
-arma::vec grad_vmsin_one_comp(arma::mat data, arma::vec par_vec, int ncores);
-RcppExport SEXP _BAMBI_grad_vmsin_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP ncoresSEXP) {
+// grad_llik_vmsin_C
+arma::vec grad_llik_vmsin_C(arma::mat data, arma::vec par);
+RcppExport SEXP _BAMBI_grad_llik_vmsin_C(SEXP dataSEXP, SEXP parSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(grad_vmsin_one_comp(data, par_vec, ncores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// grad_vmsin_all_comp
-arma::mat grad_vmsin_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi, int ncores);
-RcppExport SEXP _BAMBI_grad_vmsin_all_comp(SEXP dataSEXP, SEXP par_matSEXP, SEXP piSEXP, SEXP ncoresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par_mat(par_matSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(grad_vmsin_all_comp(data, par_mat, pi, ncores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// vmsinmix
-double vmsinmix(double x, double y, arma::mat par, arma::vec pi, arma::vec log_c_von);
-RcppExport SEXP _BAMBI_vmsinmix(SEXP xSEXP, SEXP ySEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type x(xSEXP);
-    Rcpp::traits::input_parameter< double >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    rcpp_result_gen = Rcpp::wrap(vmsinmix(x, y, par, pi, log_c_von));
-    return rcpp_result_gen;
-END_RCPP
-}
-// vmsinmix_manyx
-arma::vec vmsinmix_manyx(arma::mat x, arma::mat par, arma::vec pi, arma::vec log_c_von);
-RcppExport SEXP _BAMBI_vmsinmix_manyx(SEXP xSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    rcpp_result_gen = Rcpp::wrap(vmsinmix_manyx(x, par, pi, log_c_von));
+    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
+    rcpp_result_gen = Rcpp::wrap(grad_llik_vmsin_C(data, par));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1083,8 +1043,56 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ldsin_onex_manypar
+arma::vec ldsin_onex_manypar(arma::vec x, arma::vec k1, arma::vec k2, arma::vec k3, arma::vec mu1, arma::vec mu2);
+RcppExport SEXP _BAMBI_ldsin_onex_manypar(SEXP xSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu2(mu2SEXP);
+    rcpp_result_gen = Rcpp::wrap(ldsin_onex_manypar(x, k1, k2, k3, mu1, mu2));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ldsin_manyx_onepar
+arma::vec ldsin_manyx_onepar(arma::mat x, double k1, double k2, double k3, double mu1, double mu2);
+RcppExport SEXP _BAMBI_ldsin_manyx_onepar(SEXP xSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    Rcpp::traits::input_parameter< double >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< double >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< double >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    rcpp_result_gen = Rcpp::wrap(ldsin_manyx_onepar(x, k1, k2, k3, mu1, mu2));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ldsin_manyx_manypar
+arma::vec ldsin_manyx_manypar(arma::mat x, arma::vec k1, arma::vec k2, arma::vec k3, arma::vec mu1, arma::vec mu2);
+RcppExport SEXP _BAMBI_ldsin_manyx_manypar(SEXP xSEXP, SEXP k1SEXP, SEXP k2SEXP, SEXP k3SEXP, SEXP mu1SEXP, SEXP mu2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k1(k1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k2(k2SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type k3(k3SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type mu2(mu2SEXP);
+    rcpp_result_gen = Rcpp::wrap(ldsin_manyx_manypar(x, k1, k2, k3, mu1, mu2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ldwnorm2_num
-long double ldwnorm2_num(arma::vec x, arma::vec par, arma::mat omega_2pi);
+double ldwnorm2_num(arma::vec x, arma::vec par, arma::mat omega_2pi);
 RcppExport SEXP _BAMBI_ldwnorm2_num(SEXP xSEXP, SEXP parSEXP, SEXP omega_2piSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -1145,9 +1153,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// llik_wnorm2_full
-long double llik_wnorm2_full(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c, arma::mat omega_2pi, int ncores);
-RcppExport SEXP _BAMBI_llik_wnorm2_full(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP omega_2piSEXP, SEXP ncoresSEXP) {
+// llik_wnorm2_contri_C
+arma::vec llik_wnorm2_contri_C(arma::mat data, arma::mat par, arma::vec pi, arma::vec log_c, arma::mat omega_2pi);
+RcppExport SEXP _BAMBI_llik_wnorm2_contri_C(SEXP dataSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_cSEXP, SEXP omega_2piSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -1156,8 +1164,34 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type log_c(log_cSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type omega_2pi(omega_2piSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(llik_wnorm2_full(data, par, pi, log_c, omega_2pi, ncores));
+    rcpp_result_gen = Rcpp::wrap(llik_wnorm2_contri_C(data, par, pi, log_c, omega_2pi));
+    return rcpp_result_gen;
+END_RCPP
+}
+// llik_wnorm2_one_comp
+double llik_wnorm2_one_comp(arma::mat data, arma::vec par_vec, double log_c, arma::mat omega_2pi);
+RcppExport SEXP _BAMBI_llik_wnorm2_one_comp(SEXP dataSEXP, SEXP par_vecSEXP, SEXP log_cSEXP, SEXP omega_2piSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par_vec(par_vecSEXP);
+    Rcpp::traits::input_parameter< double >::type log_c(log_cSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type omega_2pi(omega_2piSEXP);
+    rcpp_result_gen = Rcpp::wrap(llik_wnorm2_one_comp(data, par_vec, log_c, omega_2pi));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grad_llik_wnorm2_C
+arma::vec grad_llik_wnorm2_C(arma::mat data, arma::vec par, arma::mat omega_2pi);
+RcppExport SEXP _BAMBI_grad_llik_wnorm2_C(SEXP dataSEXP, SEXP parSEXP, SEXP omega_2piSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type par(parSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type omega_2pi(omega_2piSEXP);
+    rcpp_result_gen = Rcpp::wrap(grad_llik_wnorm2_C(data, par, omega_2pi));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1174,51 +1208,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type det_sig_inv_sqrt(det_sig_inv_sqrtSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type omega_2pi(omega_2piSEXP);
     rcpp_result_gen = Rcpp::wrap(grad_den_wnorm2_one_comp_i_unadj(x, y, par, det_sig_inv, det_sig_inv_sqrt, omega_2pi));
-    return rcpp_result_gen;
-END_RCPP
-}
-// grad_wnorm2_all_comp
-arma::mat grad_wnorm2_all_comp(arma::mat data, arma::mat par_mat, arma::vec pi, arma::mat omega_2pi, int ncores);
-RcppExport SEXP _BAMBI_grad_wnorm2_all_comp(SEXP dataSEXP, SEXP par_matSEXP, SEXP piSEXP, SEXP omega_2piSEXP, SEXP ncoresSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par_mat(par_matSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type omega_2pi(omega_2piSEXP);
-    Rcpp::traits::input_parameter< int >::type ncores(ncoresSEXP);
-    rcpp_result_gen = Rcpp::wrap(grad_wnorm2_all_comp(data, par_mat, pi, omega_2pi, ncores));
-    return rcpp_result_gen;
-END_RCPP
-}
-// wnorm2mix
-long double wnorm2mix(arma::vec x, arma::mat par, arma::vec pi, arma::vec log_wnorm_const, arma::mat omega_2pi);
-RcppExport SEXP _BAMBI_wnorm2mix(SEXP xSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_wnorm_constSEXP, SEXP omega_2piSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_wnorm_const(log_wnorm_constSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type omega_2pi(omega_2piSEXP);
-    rcpp_result_gen = Rcpp::wrap(wnorm2mix(x, par, pi, log_wnorm_const, omega_2pi));
-    return rcpp_result_gen;
-END_RCPP
-}
-// wnorm2mix_manyx
-arma::vec wnorm2mix_manyx(arma::mat x, arma::mat par, arma::vec pi, arma::vec log_c_von, arma::mat omega_2pi);
-RcppExport SEXP _BAMBI_wnorm2mix_manyx(SEXP xSEXP, SEXP parSEXP, SEXP piSEXP, SEXP log_c_vonSEXP, SEXP omega_2piSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type par(parSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type pi(piSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type log_c_von(log_c_vonSEXP);
-    Rcpp::traits::input_parameter< arma::mat >::type omega_2pi(omega_2piSEXP);
-    rcpp_result_gen = Rcpp::wrap(wnorm2mix_manyx(x, par, pi, log_c_von, omega_2pi));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1292,9 +1281,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BAMBI_runivm_manypar", (DL_FUNC) &_BAMBI_runivm_manypar, 2},
     {"_BAMBI_univmmix", (DL_FUNC) &_BAMBI_univmmix, 4},
     {"_BAMBI_univmmix_manyx", (DL_FUNC) &_BAMBI_univmmix_manyx, 4},
-    {"_BAMBI_mem_p_univm", (DL_FUNC) &_BAMBI_mem_p_univm, 5},
-    {"_BAMBI_llik_univm_full", (DL_FUNC) &_BAMBI_llik_univm_full, 5},
-    {"_BAMBI_grad_univm_all_comp", (DL_FUNC) &_BAMBI_grad_univm_all_comp, 4},
+    {"_BAMBI_mem_p_univm", (DL_FUNC) &_BAMBI_mem_p_univm, 4},
+    {"_BAMBI_llik_univm_one_comp", (DL_FUNC) &_BAMBI_llik_univm_one_comp, 3},
+    {"_BAMBI_grad_llik_univm_C", (DL_FUNC) &_BAMBI_grad_llik_univm_C, 2},
+    {"_BAMBI_llik_univm_contri_C", (DL_FUNC) &_BAMBI_llik_univm_contri_C, 4},
     {"_BAMBI_l_const_uniwnorm", (DL_FUNC) &_BAMBI_l_const_uniwnorm, 1},
     {"_BAMBI_const_uniwnorm", (DL_FUNC) &_BAMBI_const_uniwnorm, 1},
     {"_BAMBI_log_const_uniwnorm_all", (DL_FUNC) &_BAMBI_log_const_uniwnorm_all, 1},
@@ -1302,67 +1292,64 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BAMBI_duniwnorm_manyx_onepar", (DL_FUNC) &_BAMBI_duniwnorm_manyx_onepar, 4},
     {"_BAMBI_duniwnorm_manyx_manypar", (DL_FUNC) &_BAMBI_duniwnorm_manyx_manypar, 4},
     {"_BAMBI_duniwnorm_onex_manypar", (DL_FUNC) &_BAMBI_duniwnorm_onex_manypar, 4},
-    {"_BAMBI_uniwnormmix", (DL_FUNC) &_BAMBI_uniwnormmix, 5},
-    {"_BAMBI_uniwnormmix_manyx", (DL_FUNC) &_BAMBI_uniwnormmix_manyx, 5},
-    {"_BAMBI_mem_p_uniwnorm", (DL_FUNC) &_BAMBI_mem_p_uniwnorm, 6},
-    {"_BAMBI_llik_uniwnorm_full", (DL_FUNC) &_BAMBI_llik_uniwnorm_full, 6},
-    {"_BAMBI_grad_uniwnorm_all_comp", (DL_FUNC) &_BAMBI_grad_uniwnorm_all_comp, 5},
+    {"_BAMBI_mem_p_uniwnorm", (DL_FUNC) &_BAMBI_mem_p_uniwnorm, 5},
+    {"_BAMBI_llik_uniwnorm_contri_C", (DL_FUNC) &_BAMBI_llik_uniwnorm_contri_C, 5},
+    {"_BAMBI_llik_uniwnorm_one_comp", (DL_FUNC) &_BAMBI_llik_uniwnorm_one_comp, 4},
+    {"_BAMBI_grad_llik_uniwnorm_C", (DL_FUNC) &_BAMBI_grad_llik_uniwnorm_C, 3},
     {"_BAMBI_BESSI0_C", (DL_FUNC) &_BAMBI_BESSI0_C, 1},
     {"_BAMBI_const_vmcos_anltc", (DL_FUNC) &_BAMBI_const_vmcos_anltc, 3},
-    {"_BAMBI_const_vmcos_mc", (DL_FUNC) &_BAMBI_const_vmcos_mc, 5},
-    {"_BAMBI_const_vmcos", (DL_FUNC) &_BAMBI_const_vmcos, 5},
-    {"_BAMBI_d_const_vmcos_k1_anltc", (DL_FUNC) &_BAMBI_d_const_vmcos_k1_anltc, 3},
+    {"_BAMBI_const_vmcos_mc", (DL_FUNC) &_BAMBI_const_vmcos_mc, 4},
+    {"_BAMBI_const_vmcos", (DL_FUNC) &_BAMBI_const_vmcos, 4},
     {"_BAMBI_d_const_vmcos_anltc", (DL_FUNC) &_BAMBI_d_const_vmcos_anltc, 3},
     {"_BAMBI_d_const_vmcos_mc", (DL_FUNC) &_BAMBI_d_const_vmcos_mc, 5},
     {"_BAMBI_d_const_vmcos", (DL_FUNC) &_BAMBI_d_const_vmcos, 3},
-    {"_BAMBI_log_const_vmcos_all", (DL_FUNC) &_BAMBI_log_const_vmcos_all, 3},
+    {"_BAMBI_log_const_vmcos_all", (DL_FUNC) &_BAMBI_log_const_vmcos_all, 2},
     {"_BAMBI_ldcosnum", (DL_FUNC) &_BAMBI_ldcosnum, 3},
     {"_BAMBI_dcos_onex_manypar", (DL_FUNC) &_BAMBI_dcos_onex_manypar, 7},
     {"_BAMBI_dcos_manyx_onepar", (DL_FUNC) &_BAMBI_dcos_manyx_onepar, 7},
     {"_BAMBI_dcos_manyx_manypar", (DL_FUNC) &_BAMBI_dcos_manyx_manypar, 7},
+    {"_BAMBI_rcos_unimodal", (DL_FUNC) &_BAMBI_rcos_unimodal, 10},
+    {"_BAMBI_rcos_bimodal", (DL_FUNC) &_BAMBI_rcos_bimodal, 14},
     {"_BAMBI_rcos_onepar", (DL_FUNC) &_BAMBI_rcos_onepar, 7},
-    {"_BAMBI_rcos_manypar", (DL_FUNC) &_BAMBI_rcos_manypar, 6},
-    {"_BAMBI_mem_p_cos", (DL_FUNC) &_BAMBI_mem_p_cos, 5},
-    {"_BAMBI_llik_vmcos_full", (DL_FUNC) &_BAMBI_llik_vmcos_full, 5},
-    {"_BAMBI_grad_log_vmcos_one_comp_i", (DL_FUNC) &_BAMBI_grad_log_vmcos_one_comp_i, 5},
-    {"_BAMBI_grad_vmcos_all_comp", (DL_FUNC) &_BAMBI_grad_vmcos_all_comp, 5},
-    {"_BAMBI_vmcosmix", (DL_FUNC) &_BAMBI_vmcosmix, 5},
-    {"_BAMBI_vmcosmix_manyx", (DL_FUNC) &_BAMBI_vmcosmix_manyx, 4},
+    {"_BAMBI_mem_p_cos", (DL_FUNC) &_BAMBI_mem_p_cos, 4},
+    {"_BAMBI_llik_vmcos_contri_C", (DL_FUNC) &_BAMBI_llik_vmcos_contri_C, 4},
+    {"_BAMBI_llik_vmcos_one_comp", (DL_FUNC) &_BAMBI_llik_vmcos_one_comp, 3},
+    {"_BAMBI_grad_llik_vmcos_C", (DL_FUNC) &_BAMBI_grad_llik_vmcos_C, 3},
     {"_BAMBI_vmcos_var_corr_anltc", (DL_FUNC) &_BAMBI_vmcos_var_corr_anltc, 3},
     {"_BAMBI_vmcos_var_corr_mc", (DL_FUNC) &_BAMBI_vmcos_var_corr_mc, 5},
     {"_BAMBI_vmcos_var_cor_singlepar_cpp", (DL_FUNC) &_BAMBI_vmcos_var_cor_singlepar_cpp, 5},
+    {"_BAMBI_ldcos_onex_manypar", (DL_FUNC) &_BAMBI_ldcos_onex_manypar, 7},
+    {"_BAMBI_ldcos_manyx_onepar", (DL_FUNC) &_BAMBI_ldcos_manyx_onepar, 7},
+    {"_BAMBI_ldcos_manyx_manypar", (DL_FUNC) &_BAMBI_ldcos_manyx_manypar, 7},
     {"_BAMBI_const_vmsin", (DL_FUNC) &_BAMBI_const_vmsin, 3},
-    {"_BAMBI_d_const_vmsin_lambda", (DL_FUNC) &_BAMBI_d_const_vmsin_lambda, 3},
-    {"_BAMBI_d_const_vmsin_k1", (DL_FUNC) &_BAMBI_d_const_vmsin_k1, 3},
-    {"_BAMBI_d_const_vmsin_k2", (DL_FUNC) &_BAMBI_d_const_vmsin_k2, 3},
     {"_BAMBI_d_const_vmsin", (DL_FUNC) &_BAMBI_d_const_vmsin, 1},
     {"_BAMBI_log_const_vmsin_all", (DL_FUNC) &_BAMBI_log_const_vmsin_all, 1},
     {"_BAMBI_ldsinnum", (DL_FUNC) &_BAMBI_ldsinnum, 3},
     {"_BAMBI_dsin_onex_manypar", (DL_FUNC) &_BAMBI_dsin_onex_manypar, 6},
     {"_BAMBI_dsin_manyx_onepar", (DL_FUNC) &_BAMBI_dsin_manyx_onepar, 6},
     {"_BAMBI_dsin_manyx_manypar", (DL_FUNC) &_BAMBI_dsin_manyx_manypar, 6},
+    {"_BAMBI_rsin_unimodal", (DL_FUNC) &_BAMBI_rsin_unimodal, 10},
+    {"_BAMBI_rsin_bimodal", (DL_FUNC) &_BAMBI_rsin_bimodal, 14},
     {"_BAMBI_rsin_onepar", (DL_FUNC) &_BAMBI_rsin_onepar, 7},
-    {"_BAMBI_rsin_manypar", (DL_FUNC) &_BAMBI_rsin_manypar, 6},
     {"_BAMBI_mem_p_sin", (DL_FUNC) &_BAMBI_mem_p_sin, 5},
-    {"_BAMBI_llik_vmsin_full", (DL_FUNC) &_BAMBI_llik_vmsin_full, 5},
-    {"_BAMBI_llik_vmsin_one_comp", (DL_FUNC) &_BAMBI_llik_vmsin_one_comp, 4},
-    {"_BAMBI_grad_vmsin_one_comp", (DL_FUNC) &_BAMBI_grad_vmsin_one_comp, 3},
-    {"_BAMBI_grad_vmsin_all_comp", (DL_FUNC) &_BAMBI_grad_vmsin_all_comp, 4},
-    {"_BAMBI_vmsinmix", (DL_FUNC) &_BAMBI_vmsinmix, 5},
-    {"_BAMBI_vmsinmix_manyx", (DL_FUNC) &_BAMBI_vmsinmix_manyx, 4},
+    {"_BAMBI_llik_vmsin_contri_C", (DL_FUNC) &_BAMBI_llik_vmsin_contri_C, 4},
+    {"_BAMBI_llik_vmsin_one_comp", (DL_FUNC) &_BAMBI_llik_vmsin_one_comp, 3},
+    {"_BAMBI_grad_llik_vmsin_C", (DL_FUNC) &_BAMBI_grad_llik_vmsin_C, 2},
     {"_BAMBI_vmsin_var_corr_anltc", (DL_FUNC) &_BAMBI_vmsin_var_corr_anltc, 3},
     {"_BAMBI_vmsin_var_corr_mc", (DL_FUNC) &_BAMBI_vmsin_var_corr_mc, 5},
     {"_BAMBI_vmsin_var_cor_singlepar_cpp", (DL_FUNC) &_BAMBI_vmsin_var_cor_singlepar_cpp, 5},
+    {"_BAMBI_ldsin_onex_manypar", (DL_FUNC) &_BAMBI_ldsin_onex_manypar, 6},
+    {"_BAMBI_ldsin_manyx_onepar", (DL_FUNC) &_BAMBI_ldsin_manyx_onepar, 6},
+    {"_BAMBI_ldsin_manyx_manypar", (DL_FUNC) &_BAMBI_ldsin_manyx_manypar, 6},
     {"_BAMBI_ldwnorm2_num", (DL_FUNC) &_BAMBI_ldwnorm2_num, 3},
     {"_BAMBI_l_const_wnorm2", (DL_FUNC) &_BAMBI_l_const_wnorm2, 1},
     {"_BAMBI_const_wnorm2", (DL_FUNC) &_BAMBI_const_wnorm2, 1},
     {"_BAMBI_log_const_wnorm2_all", (DL_FUNC) &_BAMBI_log_const_wnorm2_all, 1},
     {"_BAMBI_mem_p_wnorm2", (DL_FUNC) &_BAMBI_mem_p_wnorm2, 6},
-    {"_BAMBI_llik_wnorm2_full", (DL_FUNC) &_BAMBI_llik_wnorm2_full, 6},
+    {"_BAMBI_llik_wnorm2_contri_C", (DL_FUNC) &_BAMBI_llik_wnorm2_contri_C, 5},
+    {"_BAMBI_llik_wnorm2_one_comp", (DL_FUNC) &_BAMBI_llik_wnorm2_one_comp, 4},
+    {"_BAMBI_grad_llik_wnorm2_C", (DL_FUNC) &_BAMBI_grad_llik_wnorm2_C, 3},
     {"_BAMBI_grad_den_wnorm2_one_comp_i_unadj", (DL_FUNC) &_BAMBI_grad_den_wnorm2_one_comp_i_unadj, 6},
-    {"_BAMBI_grad_wnorm2_all_comp", (DL_FUNC) &_BAMBI_grad_wnorm2_all_comp, 5},
-    {"_BAMBI_wnorm2mix", (DL_FUNC) &_BAMBI_wnorm2mix, 5},
-    {"_BAMBI_wnorm2mix_manyx", (DL_FUNC) &_BAMBI_wnorm2mix_manyx, 5},
     {"_BAMBI_dwnorm2_onex_manypar", (DL_FUNC) &_BAMBI_dwnorm2_onex_manypar, 7},
     {"_BAMBI_dwnorm2_manyx_onepar", (DL_FUNC) &_BAMBI_dwnorm2_manyx_onepar, 7},
     {"_BAMBI_dwnorm2_manyx_manypar", (DL_FUNC) &_BAMBI_dwnorm2_manyx_manypar, 7},

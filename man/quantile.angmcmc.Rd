@@ -4,8 +4,8 @@
 \alias{quantile.angmcmc}
 \title{Quantile estimates for parameters from an angmcmc object}
 \usage{
-\method{quantile}{angmcmc}(x, par.name = NULL, comp.label = NULL,
-  burnin = 1/3, thin = 1, ...)
+\method{quantile}{angmcmc}(x, par.name, comp.label, chain.no, probs = seq(0,
+  1, 0.25), ...)
 }
 \arguments{
 \item{x}{angmcmc object}
@@ -15,9 +15,12 @@
 \item{comp.label}{vector of component labels (positive integers, e.g., \code{1, 2, ...}) for which point estimates are to be computed.
 If \code{NULL}, results for all components are provided.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
+\item{chain.no}{vector of chain numbers whose samples are to be be used.
+in the estimation. By default all chains are used.}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{probs}{numeric vector of probabilities with values in
+    \eqn{[0,1]}.  (Values up to \samp{2e-14} outside that
+    range are accepted and moved to the nearby endpoint.)}
 
 \item{...}{further arguments to pass to \code{quantile}.  In particular, \code{probs = seq(0, 1, 0.25)}
 is the default vector of quantiles computed for each parameter.}
@@ -33,7 +36,7 @@ Quantile estimates for parameters from an angmcmc object
 # first fit a vmsin mixture model
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 # 0.025th quantiles
 (quant_025 <- quantile(fit.vmsin.20, prob = 0.025))
 # 0.975th quantiles

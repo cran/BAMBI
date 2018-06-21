@@ -1,6 +1,8 @@
 #' Sample circular correlation coefficients
 #' @param x two column matrix. NA values are not allowed.
-#' @param type type of the circular correlation. Must be one of "fl" or "js" or "kendall". See details.
+#' @param type type of the circular correlation.
+#' Must be one of "fl", "js", "tau1" and "tau2". See details.
+#'
 #' @details
 #' \code{circ_cor} calculates the (sample) circular correlation between the columns of x.
 #' Two parametric (the Jammalamadaka-Sarma (1988, equation 2.6) form \code{"js"}, and
@@ -89,13 +91,12 @@ circ_cor <- function(x, type="js") {
 #' the analytical formulas.
 #' @param nsim Monte Carlo sample size. Ignored if all of \code{kappa1}, \code{kappa2}
 #' and \code{abs(kappa3)} are < 150 or if model = \code{"wnorm2"}.
-#'
+#' @inheritParams contour_model
 #'
 #' @return
 #' Returns a list with elements \code{var1}, \code{var2} (circular variances for the
 #' first and second coordinates), \code{rho_fl} and \code{rho_js} (circular correlations).
 #' See details.
-
 #'
 #' @details
 #' The function computes the analytic circular variances and correlations
@@ -107,15 +108,27 @@ circ_cor <- function(x, type="js") {
 #' Jammalamadaka and Sarma (1988) and Fisher and Lee (1983) respectively.
 #' For \code{vmsin} and \code{vmcos} these expressions are provided in Chakraborty and Wong (2018).
 #'
-#' Because the analytic expressions in \code{vmsin} and \code{vmcos} models involve infinite sums of product of Bessel functions,
-#' if any of \code{kappa1}, \code{kappa2} and \code{kappa3} is larger
+#' Because the analytic expressions in \code{vmsin} and \code{vmcos} models involve infinite sums
+#' of product of Bessel functions,
+#' if any of \code{kappa1}, \code{kappa2} and \code{abs(kappa3)} is larger
 #' than or equal to 150, IID Monte Carlo with sample size \code{nsim} is used
-#' to approximate \code{rho_js} for numerical stability. From \code{rho_js},
+#' to approximate \code{rho_js} for numerical stability.  From \code{rho_js},
 #' \code{rho_fl} is computed using Corollary 2.2 in
 #' Chakraborty and Wong (2018), which makes cost-complexity for
 #' the \code{rho_fl} evaluation to be of order  O(\code{nsim}) for \code{vmsin}
 #' and \code{vmcos} models. (In general,  \code{rho_fl} evaluation
 #' is of order O(\code{nsim}^2)).
+#'
+#' In addition, for the \code{vmcos} model, when \code{-150 < kappa3 < -1}
+#' or \code{50 < max(kappa1, kappa2, abs(kappa3)) <= 150}, the analytic formulas
+#' in Chakraborty and Wong (2018) are used; however, the reciprocal of the normalizing
+#' constant and its partial derivatives are all calculated numerically via (quasi) Monte carlo method for
+#' numerical stability. These (quasi) random numbers can be provided through the
+#' argument \code{qrnd}, which must be a two column matrix, with each element being
+#' a  (quasi) random number between 0 and 1. Alternatively, if \code{n_qrnd} is
+#' provided (and \code{qrnd} is missing), a two dimensional sobol sequence of size \code{n_qrnd} is
+#' generated via the function \link{sobol} from the R package \code{qrng}. If none of \code{qrnd}
+#' or \code{n_qrnd} is available, a two dimensional sobol sequence of size 1e4 is used.
 #'
 #'
 #' @examples
@@ -146,7 +159,7 @@ circ_cor <- function(x, type="js") {
 #' @export
 
 circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 0,
-                              mu1 = 0, mu2 = 0, nsim = 1e4)
+                              mu1 = 0, mu2 = 0, nsim = 1e4, ...)
 {
 
   if(any(c(kappa1, kappa2) < 0))
@@ -160,6 +173,27 @@ circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 
 
   nsim <- round(nsim)
 
+  if (model == "vmcos") {
+    ell <- list(...)
+
+    if (!is.null(ell$qrnd_grid)) {
+      qrnd_grid <- ell$qrnd_grid
+      dim_qrnd <- dim(qrnd_grid)
+      if (!is.matrix(qrnd_grid) | is.null(dim_qrnd) |
+          dim_qrnd[2] != 2)
+        stop("qrnd_grid must be a two column matrix")
+      n_qrnd <- dim_qrnd[1]
+    } else if (!is.null(ell$n_qrnd)){
+      n_qrnd <- round(ell$n_qrnd)
+      if (n_qrnd < 1)
+        stop("n_qrnd must be a positive integer")
+      qrnd_grid <- sobol(n_qrnd, 2, FALSE)
+    } else {
+      n_qrnd <- 1e4
+      qrnd_grid <- sobol(n_qrnd, 2, FALSE)
+    }
+  }
+
   if(max(length(kappa1), length(kappa2), length(kappa3), length(mu1), length(mu2)) > 1) {
     expanded <- expand_args(kappa1, kappa2, kappa3, mu1, mu2)
     kappa1 <- expanded[[1]]
@@ -169,16 +203,25 @@ circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 
         any (kappa1*kappa2 - kappa3*kappa3 <= 1e-10))
       stop("abs(kappa3) must be less than sqrt(kappa1*kappa2) in wnorm2")
     lapply(1:length(kappa1),
-           function(j) do.call(paste0(model, "_var_cor_singlepar"),
-                               list(kappa1 = kappa1[j], kappa2 = kappa2[j],
-                                    kappa3 = kappa3[j], N = nsim)))
+           function(j) {
+             inargs <- list(kappa1 = kappa1[j], kappa2 = kappa2[j],
+                            kappa3 = kappa3[j], N = nsim)
+             if (model == "vmcos") inargs$qrnd_grid <- qrnd_grid
+             do.call(paste0(model, "_var_cor_singlepar"),
+                     inargs)
+           }
+    )
   } else {
     if (model == "wnorm2" &
-         (kappa1*kappa2 - kappa3*kappa3 <= 1e-10))
+        (kappa1*kappa2 - kappa3*kappa3 <= 1e-10))
       stop("abs(kappa3) must be less than sqrt(kappa1*kappa2) in wnorm2")
+
+    inargs <- list(kappa1 = kappa1, kappa2 = kappa2,
+                   kappa3 = kappa3, N = nsim)
+    if (model == "vmcos") inargs$qrnd_grid <- qrnd_grid
     do.call(paste0(model, "_var_cor_singlepar"),
-            list(kappa1 = kappa1, kappa2 = kappa2,
-                 kappa3 = kappa3, N = nsim))
+            inargs)
   }
 
 }
+

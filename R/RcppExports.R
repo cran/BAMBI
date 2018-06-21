@@ -69,16 +69,20 @@ univmmix_manyx <- function(x, par, pi, log_c) {
     .Call(`_BAMBI_univmmix_manyx`, x, par, pi, log_c)
 }
 
-mem_p_univm <- function(data, par, pi, log_c_von, ncores = 1L) {
-    .Call(`_BAMBI_mem_p_univm`, data, par, pi, log_c_von, ncores)
+mem_p_univm <- function(data, par, pi, log_c_von) {
+    .Call(`_BAMBI_mem_p_univm`, data, par, pi, log_c_von)
 }
 
-llik_univm_full <- function(data, par, pi, log_c, ncores = 1L) {
-    .Call(`_BAMBI_llik_univm_full`, data, par, pi, log_c, ncores)
+llik_univm_one_comp <- function(data, par_vec, log_c) {
+    .Call(`_BAMBI_llik_univm_one_comp`, data, par_vec, log_c)
 }
 
-grad_univm_all_comp <- function(data, par_mat, pi, ncores = 1L) {
-    .Call(`_BAMBI_grad_univm_all_comp`, data, par_mat, pi, ncores)
+grad_llik_univm_C <- function(data, par) {
+    .Call(`_BAMBI_grad_llik_univm_C`, data, par)
+}
+
+llik_univm_contri_C <- function(data, par, pi, log_c) {
+    .Call(`_BAMBI_llik_univm_contri_C`, data, par, pi, log_c)
 }
 
 l_const_uniwnorm <- function(k) {
@@ -109,24 +113,20 @@ duniwnorm_onex_manypar <- function(x, k, mu, omega_2pi_1d) {
     .Call(`_BAMBI_duniwnorm_onex_manypar`, x, k, mu, omega_2pi_1d)
 }
 
-uniwnormmix <- function(x, par, pi, log_c_von, omega_2pi_1d) {
-    .Call(`_BAMBI_uniwnormmix`, x, par, pi, log_c_von, omega_2pi_1d)
+mem_p_uniwnorm <- function(data, par, pi, log_c_von, omega_2pi_1d) {
+    .Call(`_BAMBI_mem_p_uniwnorm`, data, par, pi, log_c_von, omega_2pi_1d)
 }
 
-uniwnormmix_manyx <- function(x, par, pi, log_c, omega_2pi_1d) {
-    .Call(`_BAMBI_uniwnormmix_manyx`, x, par, pi, log_c, omega_2pi_1d)
+llik_uniwnorm_contri_C <- function(data, par, pi, log_c, omega_2pi_1d) {
+    .Call(`_BAMBI_llik_uniwnorm_contri_C`, data, par, pi, log_c, omega_2pi_1d)
 }
 
-mem_p_uniwnorm <- function(data, par, pi, log_c_von, omega_2pi_1d, ncores = 1L) {
-    .Call(`_BAMBI_mem_p_uniwnorm`, data, par, pi, log_c_von, omega_2pi_1d, ncores)
+llik_uniwnorm_one_comp <- function(data, par_vec, log_c, omega_2pi_1d) {
+    .Call(`_BAMBI_llik_uniwnorm_one_comp`, data, par_vec, log_c, omega_2pi_1d)
 }
 
-llik_uniwnorm_full <- function(data, par, pi, log_c, omega_2pi_1d, ncores = 1L) {
-    .Call(`_BAMBI_llik_uniwnorm_full`, data, par, pi, log_c, omega_2pi_1d, ncores)
-}
-
-grad_uniwnorm_all_comp <- function(data, par_mat, pi, omega_2pi_1d, ncores) {
-    .Call(`_BAMBI_grad_uniwnorm_all_comp`, data, par_mat, pi, omega_2pi_1d, ncores)
+grad_llik_uniwnorm_C <- function(data, par, omega_2pi_1d) {
+    .Call(`_BAMBI_grad_llik_uniwnorm_C`, data, par, omega_2pi_1d)
 }
 
 BESSI0_C <- function(x) {
@@ -137,16 +137,12 @@ const_vmcos_anltc <- function(k1, k2, k3) {
     .Call(`_BAMBI_const_vmcos_anltc`, k1, k2, k3)
 }
 
-const_vmcos_mc <- function(k1, k2, k3, uni_rand, ncores = 1L) {
-    .Call(`_BAMBI_const_vmcos_mc`, k1, k2, k3, uni_rand, ncores)
+const_vmcos_mc <- function(k1, k2, k3, uni_rand) {
+    .Call(`_BAMBI_const_vmcos_mc`, k1, k2, k3, uni_rand)
 }
 
-const_vmcos <- function(k1, k2, k3, uni_rand, ncores = 1L) {
-    .Call(`_BAMBI_const_vmcos`, k1, k2, k3, uni_rand, ncores)
-}
-
-d_const_vmcos_k1_anltc <- function(k1, k2, k3) {
-    .Call(`_BAMBI_d_const_vmcos_k1_anltc`, k1, k2, k3)
+const_vmcos <- function(k1, k2, k3, uni_rand) {
+    .Call(`_BAMBI_const_vmcos`, k1, k2, k3, uni_rand)
 }
 
 d_const_vmcos_anltc <- function(k1, k2, k3) {
@@ -161,8 +157,8 @@ d_const_vmcos <- function(par, uni_rand, ncores = 1L) {
     .Call(`_BAMBI_d_const_vmcos`, par, uni_rand, ncores)
 }
 
-log_const_vmcos_all <- function(par_mat, uni_rand, ncores = 1L) {
-    .Call(`_BAMBI_log_const_vmcos_all`, par_mat, uni_rand, ncores)
+log_const_vmcos_all <- function(par_mat, uni_rand) {
+    .Call(`_BAMBI_log_const_vmcos_all`, par_mat, uni_rand)
 }
 
 ldcosnum <- function(x, y, par) {
@@ -181,36 +177,32 @@ dcos_manyx_manypar <- function(x, k1, k2, k3, mu1, mu2, l_const_all) {
     .Call(`_BAMBI_dcos_manyx_manypar`, x, k1, k2, k3, mu1, mu2, l_const_all)
 }
 
+rcos_unimodal <- function(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmcos) {
+    .Call(`_BAMBI_rcos_unimodal`, n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmcos)
+}
+
+rcos_bimodal <- function(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmcos, mode_1, mode_2, vmpropn, unifpropn) {
+    .Call(`_BAMBI_rcos_bimodal`, n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmcos, mode_1, mode_2, vmpropn, unifpropn)
+}
+
 rcos_onepar <- function(n, k1, k2, k3, mu1, mu2, I_upper_bd) {
     .Call(`_BAMBI_rcos_onepar`, n, k1, k2, k3, mu1, mu2, I_upper_bd)
 }
 
-rcos_manypar <- function(k1, k2, k3, mu1, mu2, I_upper_bd) {
-    .Call(`_BAMBI_rcos_manypar`, k1, k2, k3, mu1, mu2, I_upper_bd)
+mem_p_cos <- function(data, par, pi, log_c_von) {
+    .Call(`_BAMBI_mem_p_cos`, data, par, pi, log_c_von)
 }
 
-mem_p_cos <- function(data, par, pi, log_c_von, ncores = 1L) {
-    .Call(`_BAMBI_mem_p_cos`, data, par, pi, log_c_von, ncores)
+llik_vmcos_contri_C <- function(data, par, pi, log_c) {
+    .Call(`_BAMBI_llik_vmcos_contri_C`, data, par, pi, log_c)
 }
 
-llik_vmcos_full <- function(data, par, pi, log_c, ncores = 1L) {
-    .Call(`_BAMBI_llik_vmcos_full`, data, par, pi, log_c, ncores)
+llik_vmcos_one_comp <- function(data, par_vec, log_c) {
+    .Call(`_BAMBI_llik_vmcos_one_comp`, data, par_vec, log_c)
 }
 
-grad_log_vmcos_one_comp_i <- function(x, y, par, c_vmcos, del_const_vmcos) {
-    .Call(`_BAMBI_grad_log_vmcos_one_comp_i`, x, y, par, c_vmcos, del_const_vmcos)
-}
-
-grad_vmcos_all_comp <- function(data, par_mat, pi, uni_rand, ncores = 1L) {
-    .Call(`_BAMBI_grad_vmcos_all_comp`, data, par_mat, pi, uni_rand, ncores)
-}
-
-vmcosmix <- function(x, y, par, pi, log_c_von) {
-    .Call(`_BAMBI_vmcosmix`, x, y, par, pi, log_c_von)
-}
-
-vmcosmix_manyx <- function(x, par, pi, log_c_von) {
-    .Call(`_BAMBI_vmcosmix_manyx`, x, par, pi, log_c_von)
+grad_llik_vmcos_C <- function(data, par, uni_rand) {
+    .Call(`_BAMBI_grad_llik_vmcos_C`, data, par, uni_rand)
 }
 
 vmcos_var_corr_anltc <- function(k1, k2, k3) {
@@ -225,20 +217,20 @@ vmcos_var_cor_singlepar_cpp <- function(k1, k2, k3, uni_rand, ncores = 1L) {
     .Call(`_BAMBI_vmcos_var_cor_singlepar_cpp`, k1, k2, k3, uni_rand, ncores)
 }
 
+ldcos_onex_manypar <- function(x, k1, k2, k3, mu1, mu2, l_const_all) {
+    .Call(`_BAMBI_ldcos_onex_manypar`, x, k1, k2, k3, mu1, mu2, l_const_all)
+}
+
+ldcos_manyx_onepar <- function(x, k1, k2, k3, mu1, mu2, l_const) {
+    .Call(`_BAMBI_ldcos_manyx_onepar`, x, k1, k2, k3, mu1, mu2, l_const)
+}
+
+ldcos_manyx_manypar <- function(x, k1, k2, k3, mu1, mu2, l_const_all) {
+    .Call(`_BAMBI_ldcos_manyx_manypar`, x, k1, k2, k3, mu1, mu2, l_const_all)
+}
+
 const_vmsin <- function(k1, k2, lambda) {
     .Call(`_BAMBI_const_vmsin`, k1, k2, lambda)
-}
-
-d_const_vmsin_lambda <- function(k1, k2, lambda) {
-    .Call(`_BAMBI_d_const_vmsin_lambda`, k1, k2, lambda)
-}
-
-d_const_vmsin_k1 <- function(k1, k2, lambda) {
-    .Call(`_BAMBI_d_const_vmsin_k1`, k1, k2, lambda)
-}
-
-d_const_vmsin_k2 <- function(k1, k2, lambda) {
-    .Call(`_BAMBI_d_const_vmsin_k2`, k1, k2, lambda)
 }
 
 d_const_vmsin <- function(par) {
@@ -265,40 +257,32 @@ dsin_manyx_manypar <- function(x, k1, k2, k3, mu1, mu2) {
     .Call(`_BAMBI_dsin_manyx_manypar`, x, k1, k2, k3, mu1, mu2)
 }
 
-rsin_onepar <- function(n, k1, k2, k3, mu1, mu2, I_upper_bd) {
-    .Call(`_BAMBI_rsin_onepar`, n, k1, k2, k3, mu1, mu2, I_upper_bd)
+rsin_unimodal <- function(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmsin) {
+    .Call(`_BAMBI_rsin_unimodal`, n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmsin)
 }
 
-rsin_manypar <- function(k1, k2, k3, mu1, mu2, I_upper_bd) {
-    .Call(`_BAMBI_rsin_manypar`, k1, k2, k3, mu1, mu2, I_upper_bd)
+rsin_bimodal <- function(n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmsin, mode_1, mode_2, vmpropn, unifpropn) {
+    .Call(`_BAMBI_rsin_bimodal`, n, k1, k2, k3, mu1, mu2, kappa_opt, log_I0_kappa_opt, logK, log_const_vmsin, mode_1, mode_2, vmpropn, unifpropn)
+}
+
+rsin_onepar <- function(n, k1, k2, k3, mu1, mu2, I_upper_bd) {
+    .Call(`_BAMBI_rsin_onepar`, n, k1, k2, k3, mu1, mu2, I_upper_bd)
 }
 
 mem_p_sin <- function(data, par, pi, log_c_von, ncores = 1L) {
     .Call(`_BAMBI_mem_p_sin`, data, par, pi, log_c_von, ncores)
 }
 
-llik_vmsin_full <- function(data, par, pi, log_c, ncores = 1L) {
-    .Call(`_BAMBI_llik_vmsin_full`, data, par, pi, log_c, ncores)
+llik_vmsin_contri_C <- function(data, par, pi, log_c) {
+    .Call(`_BAMBI_llik_vmsin_contri_C`, data, par, pi, log_c)
 }
 
-llik_vmsin_one_comp <- function(data, par_vec, log_c, ncores = 1L) {
-    .Call(`_BAMBI_llik_vmsin_one_comp`, data, par_vec, log_c, ncores)
+llik_vmsin_one_comp <- function(data, par_vec, log_c) {
+    .Call(`_BAMBI_llik_vmsin_one_comp`, data, par_vec, log_c)
 }
 
-grad_vmsin_one_comp <- function(data, par_vec, ncores = 1L) {
-    .Call(`_BAMBI_grad_vmsin_one_comp`, data, par_vec, ncores)
-}
-
-grad_vmsin_all_comp <- function(data, par_mat, pi, ncores = 1L) {
-    .Call(`_BAMBI_grad_vmsin_all_comp`, data, par_mat, pi, ncores)
-}
-
-vmsinmix <- function(x, y, par, pi, log_c_von) {
-    .Call(`_BAMBI_vmsinmix`, x, y, par, pi, log_c_von)
-}
-
-vmsinmix_manyx <- function(x, par, pi, log_c_von) {
-    .Call(`_BAMBI_vmsinmix_manyx`, x, par, pi, log_c_von)
+grad_llik_vmsin_C <- function(data, par) {
+    .Call(`_BAMBI_grad_llik_vmsin_C`, data, par)
 }
 
 vmsin_var_corr_anltc <- function(k1, k2, lambda) {
@@ -311,6 +295,18 @@ vmsin_var_corr_mc <- function(k1, k2, k3, uni_rand, ncores = 1L) {
 
 vmsin_var_cor_singlepar_cpp <- function(k1, k2, k3, uni_rand, ncores = 1L) {
     .Call(`_BAMBI_vmsin_var_cor_singlepar_cpp`, k1, k2, k3, uni_rand, ncores)
+}
+
+ldsin_onex_manypar <- function(x, k1, k2, k3, mu1, mu2) {
+    .Call(`_BAMBI_ldsin_onex_manypar`, x, k1, k2, k3, mu1, mu2)
+}
+
+ldsin_manyx_onepar <- function(x, k1, k2, k3, mu1, mu2) {
+    .Call(`_BAMBI_ldsin_manyx_onepar`, x, k1, k2, k3, mu1, mu2)
+}
+
+ldsin_manyx_manypar <- function(x, k1, k2, k3, mu1, mu2) {
+    .Call(`_BAMBI_ldsin_manyx_manypar`, x, k1, k2, k3, mu1, mu2)
 }
 
 ldwnorm2_num <- function(x, par, omega_2pi) {
@@ -333,24 +329,20 @@ mem_p_wnorm2 <- function(data, par_mat, pi, log_c_wnorm, omega_2pi, ncores = 1L)
     .Call(`_BAMBI_mem_p_wnorm2`, data, par_mat, pi, log_c_wnorm, omega_2pi, ncores)
 }
 
-llik_wnorm2_full <- function(data, par, pi, log_c, omega_2pi, ncores = 1L) {
-    .Call(`_BAMBI_llik_wnorm2_full`, data, par, pi, log_c, omega_2pi, ncores)
+llik_wnorm2_contri_C <- function(data, par, pi, log_c, omega_2pi) {
+    .Call(`_BAMBI_llik_wnorm2_contri_C`, data, par, pi, log_c, omega_2pi)
+}
+
+llik_wnorm2_one_comp <- function(data, par_vec, log_c, omega_2pi) {
+    .Call(`_BAMBI_llik_wnorm2_one_comp`, data, par_vec, log_c, omega_2pi)
+}
+
+grad_llik_wnorm2_C <- function(data, par, omega_2pi) {
+    .Call(`_BAMBI_grad_llik_wnorm2_C`, data, par, omega_2pi)
 }
 
 grad_den_wnorm2_one_comp_i_unadj <- function(x, y, par, det_sig_inv, det_sig_inv_sqrt, omega_2pi) {
     .Call(`_BAMBI_grad_den_wnorm2_one_comp_i_unadj`, x, y, par, det_sig_inv, det_sig_inv_sqrt, omega_2pi)
-}
-
-grad_wnorm2_all_comp <- function(data, par_mat, pi, omega_2pi, ncores = 1L) {
-    .Call(`_BAMBI_grad_wnorm2_all_comp`, data, par_mat, pi, omega_2pi, ncores)
-}
-
-wnorm2mix <- function(x, par, pi, log_wnorm_const, omega_2pi) {
-    .Call(`_BAMBI_wnorm2mix`, x, par, pi, log_wnorm_const, omega_2pi)
-}
-
-wnorm2mix_manyx <- function(x, par, pi, log_c_von, omega_2pi) {
-    .Call(`_BAMBI_wnorm2mix_manyx`, x, par, pi, log_c_von, omega_2pi)
 }
 
 dwnorm2_onex_manypar <- function(x, k1, k2, k3, mu1, mu2, omega_2pi) {

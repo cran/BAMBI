@@ -4,19 +4,27 @@
 \alias{summary.angmcmc}
 \title{Summary statistics for parameters from an angmcmc object}
 \usage{
-\method{summary}{angmcmc}(object, burnin = 1/3, thin = 1, ...)
+\method{summary}{angmcmc}(object, par.name, comp.label, chain.no, ...)
 }
 \arguments{
 \item{object}{angular MCMC object.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
+\item{par.name}{vector of names of parameters for which point estimates are to be computed.  If \code{NULL}, results for all parameters are provided.}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{comp.label}{vector of component labels (positive integers, e.g., \code{1, 2, ...}) for which point estimates are to be computed.
+If \code{NULL}, results for all components are provided.}
+
+\item{chain.no}{vector of chain numbers whose samples are to be be used.
+in the estimation. By default all chains are used.}
 
 \item{...}{additional arguments affecting the summary produced.}
 }
 \value{
-Returns a list with elements \code{estimate, lower, upper, llik} and \code{lpd}.
+Returns a list with elements \code{estimate, lower, upper, llik} and \code{lpd}. \code{estimate}
+is itself a list with three elements: \code{mean}, \code{median} and \code{mode} providing the
+sample mean, sample median and (sample) MAP estimates.
+
+Note that \code{summary.angmcmc} has its own print method, providing a table the estimated mean and 95\% credible intervals for each parameter
 }
 \description{
 Summary statistics for parameters from an angmcmc object
@@ -28,7 +36,7 @@ together with the sample averages of log likelihood and log posterior density.
 \examples{
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 summary(fit.vmsin.20)
 
 }

@@ -49,16 +49,31 @@
 
 rvm <- function(n, kappa = 1, mu = 0)
 {
-  if(any(kappa <= 0)) stop("kappa must be positive")
+  if(any(kappa < 0)) stop("kappa must be non_negative")
   if(any(mu < 0 | mu >= 2*pi)) mu <- prncp_reg(mu)
 
   if(max(length(kappa), length(mu)) > 1) {
     expanded <- expand_args(kappa, mu)
     kappa <- expanded[[1]]; mu <- expanded[[2]]
-    as.vector(runivm_manypar(kappa, mu))
+    m <- length(kappa)
+    out <- rep(0, m)
+    for(j in 1:m) {
+      if (kappa[j] > 1e-7) {
+        out[j] <- c(runivm_onepar(1, kappa[j], mu[j]))
+      } else {
+        out[j] <- runif(1, 0, 2*pi)
+      }
+    }
+
   } else {
-    as.vector(runivm_onepar(n, kappa, mu))
+    if (kappa> 1e-10) {
+      out <- c(runivm_onepar(n, kappa, mu))
+    } else {
+      out <- runif(n, 0, 2*pi)
+    }
   }
+
+  out
 }
 
 
@@ -66,32 +81,60 @@ rvm <- function(n, kappa = 1, mu = 0)
 #' @rdname rvm
 #' @export
 
-dvm <- function(x, kappa = 1, mu = 0)
+dvm <- function(x, kappa = 1, mu = 0, log = FALSE)
 {
-  if(any(kappa <= 0)) stop("kappa must be positive")
+  if(any(kappa < 0)) stop("kappa must be non-negative")
   if(any(mu < 0 | mu >= 2*pi)) mu <- prncp_reg(mu)
+
+  # if(max(length(kappa), length(mu)) > 1) {
+  #   expanded <- expand_args(kappa, mu)
+  #   kappa <- expanded[[1]]; mu <- expanded[[2]]
+  #
+  #   if(length(x) > 1) {
+  #     x_set <- 1:length(x)
+  #     par_set <- 1:length(kappa)
+  #     expndn_set <- expand_args(x_set, par_set)
+  #     x_set <- expndn_set[[1]]
+  #     par_set <- expndn_set[[2]]
+  #   } else{
+  #     den <- as.vector(dunivm_onex_manypar(x, kappa, mu))
+  #   }
+  #
+  # } else {
+  #   if(length(x) > 1){
+  #     den <- as.vector(dunivm_manyx_onepar(as.vector(x), kappa, mu))
+  #   } else{
+  #     den <- exp(ldunivmnum(as.vector(x), c(kappa, mu))) / const_univm(kappa)
+  #   }
+  # }
 
   if(max(length(kappa), length(mu)) > 1) {
     expanded <- expand_args(kappa, mu)
     kappa <- expanded[[1]]; mu <- expanded[[2]]
-
-    if(length(x) > 1) {
-      x_set <- 1:length(x)
-      par_set <- 1:length(kappa)
-      expndn_set <- expand_args(x_set, par_set)
-      x_set <- expndn_set[[1]]
-      par_set <- expndn_set[[2]]
-    } else{
-      as.vector(dunivm_onex_manypar(x, kappa, mu))
-    }
-
-  } else {
-    if(length(x) > 1){
-      as.vector(dunivm_manyx_onepar(as.vector(x), kappa, mu))
-    } else{
-      exp(ldunivmnum(as.vector(x), c(kappa, mu))) / const_univm(kappa)
-    }
   }
+
+  par.mat <- rbind(kappa, mu)
+  n_par <- ncol(par.mat)
+  n_x <- length(x)
+
+
+  if (n_par == 1) {
+    den <- c(dunivm_manyx_onepar(as.vector(x), kappa, mu))
+
+  } else if (n_x == 1) {
+    den <- c(dunivm_onex_manypar(x, kappa, mu))
+  } else {
+    x_set <- 1:n_x
+    par_set <- 1:n_par
+    expndn_set <- expand_args(x_set, par_set)
+    x_set <- expndn_set[[1]]
+    par_set <- expndn_set[[2]]
+    den <- c(dunivm_manyx_manypar(x[x_set], kappa[par_set], mu[par_set]))
+  }
+
+  if (log) den <- log(den)
+
+  den
 }
 
 #' The univariate von Mises mixtures
@@ -138,17 +181,28 @@ rvmmix <- function(n, kappa, mu, pmix)
     warning("\'pmix\' is rescaled to add up to 1")
   }
 
-  if(any(allpar$kappa <= 0)) stop("kappa must be positive")
+  if(any(allpar$kappa < 0)) stop("kappa must be non-negative")
   if(any(allpar$mu < 0 | allpar$mu >= 2*pi)) allpar$mu <- prncp_reg(allpar$mu)
 
-  clus_label <- cID(t(replicate(allpar$pmix, n = n)), length(allpar$pmix), runif(n))
-  as.vector(runivm_manypar(allpar$kappa[clus_label], allpar$mu[clus_label]))
+  out <- rep(0, n)
+  ncomp <- allpar_len[1] # number of components
+  comp_ind <- cID(t(replicate(n, pmix)), ncomp, runif(n))
+  # n samples from multinom(ncomp, pmix)
+  for(j in seq_len(ncomp)) {
+    obs_ind_j <- which(comp_ind == j)
+    n_j <- length(obs_ind_j)
+    if(n_j > 0) {
+      out[obs_ind_j] <- rvm(n_j, kappa[j],  mu[j])
+    }
+  }
+
+  out
 }
 
 
 #' @rdname rvmmix
 #' @export
-dvmmix <- function(x, kappa, mu, pmix)
+dvmmix <- function(x, kappa, mu, pmix, log=FALSE)
 {
   allpar <- list(kappa=kappa, mu=mu, pmix=pmix)
 
@@ -170,17 +224,22 @@ dvmmix <- function(x, kappa, mu, pmix)
     warning("\'pmix\' is rescaled to add up to 1")
   }
 
-  if(any(allpar$kappa <= 0)) stop("kappa must be positive")
+  if(any(allpar$kappa < 0)) stop("kappa must be non-negative")
   if(any(allpar$mu < 0 | allpar$mu >= 2*pi)) allpar$mu <- prncp_reg(allpar$mu)
 
-  par_mat <- rbind(allpar$kappa, allpar$mu)
-  pi_mix <- allpar$pmix
-  log_c_von = log_const_univm_all(par_mat)
 
-  if(length(x) == 1) {
-    univmmix(x,par_mat, pi_mix, log_c_von)
+  ncomp <- length(kappa)
+
+  allcompden <- vapply(1:ncomp,
+                       function(j) dvm(x, kappa[j], mu[j], FALSE),
+                       rep(0, length(x)))
+
+  mixden <- c(allcompden %*% pmix)
+
+  if (log) {
+    log(mixden)
   } else {
-    as.vector(univmmix_manyx(x, par_mat, pi_mix, log_c_von))
+    mixden
   }
 
 }
@@ -188,793 +247,21 @@ dvmmix <- function(x, kappa, mu, pmix)
 
 #' Fitting univariate von Mises mixtures using MCMC
 #' @inheritParams fit_vmsinmix
-#' @param data vector of observations (in radians). If outside, the values are transformed into the scale \eqn{[0, 2\pi)}.
-#' @param start_par list with elements \code{pmix} (ignored if \code{comp == 1}), \code{kappa} and \code{mu},
-#' all being vectors of length same as \code{ncomp},
-#' providing the starting values; with \eqn{j}-th component of each vector corresponding to the \eqn{j}-th component of the
-#' mixture distribution. If missing, moment estimators based on random components are used.
-#' @param epsilon,L  tuning parameters for HMC; ignored if \code{method = "rwmh"}. \code{epsilon} (step-size) is a quantity in
-#' \eqn{[0, 1)} and \code{L} (leapfrog steps) is a positive integer.
-#' @param propscale tuning parameters for RWMH; a vector of size 2 representing the variances for the proposal normal densities
-#' for \eqn{\kappa} and \eqn{\mu} respectively. Ignored if \code{method = "hmc"}.
-#' @param gam.loc,gam.scale location and scale (hyper-) parameters for the gamma prior for \code{kappa}. See
-#' \link{dgamma}. Defaults are \code{gam.loc = 0, gam.scale = 1000} that makes the prior non-informative.
-#'
-#' @return returns an angular MCMC object.
 #'
 #' @details
-#' \code{fit_vmmix} generates MCMC samples of vm mixture model parameters, and returns an
-#' angmcmc object as the output, which can be used as an argument for diagnostics and estimation
-#' functions.
+#' Wrapper for \link{fit_angmix} with \code{model = "vm"}.
 #'
-#' Default \code{method} is \code{"hmc"}.
 #'
-#' If the acceptance rate drops below 5\% after 100 or more HMC iterations, \code{epsilon} is automatically lowered, and the
-#' Markov chain is restarted at the current parameter values.
 #'
 #' @examples
 #' # illustration only - more iterations needed for convergence
-#' fit.vm.20 <- fit_vmmix(wind, ncomp = 3, n.iter =  20,
-#'                        ncores = 1)
+#' fit.vm.20 <- fit_vmmix(wind$angle, ncomp = 3, n.iter =  20,
+#'                        n.chains = 1)
 #' fit.vm.20
 #' @export
 
 
-fit_vmmix <- function(data, ncomp, start_par = list(), method = "hmc", epsilon=0.07, L=10, epsilon.random=TRUE,
-                      L.random=FALSE, propscale = rep(0.01, 2), n.iter=500, gam.loc=0, gam.scale=1000, pmix.alpha = 1/2,
-                      autotune = FALSE, iter.tune=10, ncores, show.progress = TRUE) {
-
-  if(!(mode(data) %in% c("numeric", "list"))) stop("non-compatible data")
-
-
-  curr.model <- "vm"
-  data.rad <- rm_NA_rad(data)
-  n.data <- length(data.rad)
-  kappa_upper <- 150
-
-  if(missing(ncores)) {
-    ncores <- floor(parallel::detectCores())
-  }
-
-  if(ncomp == 1) {
-    if(missing(start_par)) {
-      starting <- start_clus_kmeans_univm(data.rad, ncomp, nstart=5)
-      starting$par.mat <- matrix(starting$par.mat, ncol=1)
-    } else {
-      allpar <- start_par
-      if(any(is.null(allpar$kappa), is.null(allpar$mu)) ) {
-        stop("too few elements in start_par, with no default")
-      }
-      allpar1 <- list(allpar$kappa, allpar$mu)
-      allpar_len <- listLen(allpar1)
-      if(min(allpar_len) != max(allpar_len)){
-        stop("component size mismatch: number of components of the input parameter vectors differ")
-      }
-      starting <- list("par.mat" = rbind(start_par$kappa, start_par$mu), "pi.mix" = 1)
-    }
-  }   else if(ncomp > 1) {
-    if(missing(start_par)) {
-      starting <- start_clus_kmeans_univm(data.rad, ncomp, nstart=5)
-    } else {
-      allpar <- start_par
-      if(any(is.null(allpar$kappa), is.null(allpar$mu), is.null(allpar$pmix)) ) {
-        stop("too few elements in start_par, with no default")
-      }
-      allpar1 <- list(allpar$kappa, allpar$mu, allpar$pmix)
-      allpar_len <- listLen(allpar1)
-      if(min(allpar_len) != max(allpar_len)){
-        stop("component size mismatch: number of components of the input parameter vectors differ")
-      }
-      starting <- list("par.mat" = rbind(start_par$kappa, start_par$mu), "pi.mix" = start_par$pmix)
-    }
-  }
-
-  starting$par.mat[abs(starting$par.mat) >= kappa_upper/2] <- kappa_upper/2
-  starting$l.c.univm <- as.numeric(log_const_univm_all(starting$par.mat))
-  starting$llik <- llik_univm_full(data.rad, starting$par.mat, starting$pi.mix, starting$l.c.univm, ncores)
-  starting$lprior <- sum((pmix.alpha-1) * log(starting$pi.mix)) + sum(ldgamanum(starting$par.mat[1,], gam.loc, gam.scale))
-  starting$lpd <- starting$llik + starting$lprior
-
-  par.mat.all <- array(0, dim = c(2, ncomp, n.iter+1))
-  pi.mix.all <- matrix(1, nrow = ncomp, ncol = n.iter+1)
-  llik.all <- lprior.all <- lpd.all <- 1:(n.iter+1)
-  accpt.par.mat.all <- accpt.kappa.all <- accpt.mu.all <- rep(0, (n.iter+1))
-  modelpar.names <- c("kappa", "mu")
-
-  MC <- starting  #simulation results list, 1st entry = method of moments on kmeans output
-
-  par.mat.all[,,1] <- MC$par.mat
-  pi.mix.all[,1] <- MC$pi.mix
-  llik.all[1] <- MC$llik
-  lprior.all[1] <- MC$lprior
-  lpd.all[1] <- MC$lpd
-
-  epsilon_ave <- NULL
-  L_ave <- NULL
-  propscale_final <- NULL
-
-  clus.ind <- matrix(1, nrow = n.data, ncol = n.iter+1)
-
-  iter <- 2
-  ntune <- 0
-
-  if(show.progress) pb <- txtProgressBar(min = 2, max = n.iter+1, style = 3)
-
-  #******************************************************************************************
-  # single component model
-  #******************************************************************************************
-
-  if(ncomp == 1 && grepl(method, "hmc")) # using hmc
-  {
-    if(epsilon.random)
-      epsilon_vec <- runif(n.iter, min = 0.9*epsilon, max = 1.1*epsilon)
-    if(L.random)
-      L_vec <- sample(1:L, n.iter, replace = TRUE)
-
-
-    while(iter <= (n.iter+1)) {
-      broken <- FALSE
-      kappa.large <- FALSE
-      pi.mix.1 <- 1
-      par.mat.old <- MC$par.mat
-      l.c.univm.old <- MC$l.c.univm
-      llik_new.pi <- MC$llik
-
-      #----------------------------------------------------------------------------------
-      #generating par.mat by HMC
-      #----------------------------------------------------------------------------------
-
-      par.mat.1 <- par.mat.old
-      lprior.1 <- MC$lprior
-      llik.1 <- llik_new.pi
-      lpd.1 <- llik.1 + lprior.1
-      l.c.univm.1 <- MC$l.c.univm
-      accpt.par.mat <- 0
-
-
-      current_q <- par.mat.1
-      current_p <- matrix(rnorm(2*ncomp, 0, 1), nrow = 2)  # independent standard normal variates
-      p <- current_p
-      q <- current_q
-
-      if(L.random)
-        L <- L_vec[iter-1]
-
-      if(epsilon.random)
-        epsilon <- epsilon_vec[iter-1]
-
-      # Do leapfrog with L and epsilon
-      {
-        # Make a half step for momentum at the beginning
-
-        p <- p - (epsilon/2) * (- grad_univm_all_comp(data.rad, q, pi.mix.1, ncores)
-                                + matrix(c(1/gam.scale + (1- 1/gam.scale)/q[1,], 0), ncol=1) ) # the second term in the bracket arises from prior
-        # Alternate full steps for position and momentum
-
-        for (i in 1:L)
-        {
-          # Make a full step for the position
-
-          q <- q + epsilon * p
-
-          if(all(!is.nan(q)) && any(abs(q[1, ]) >= kappa_upper)) {
-            kappa.large <- TRUE
-            break
-          }
-
-          if(any(is.nan(c(q,p)))) {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          }
-          # Make sure the components of q1 are in the proper ranges
-          {
-            q1 <- q; p1 <- p
-
-            for(j in 1:ncomp) {
-
-              while(q1[1,j] <= 0) {
-                q1[1,j] <- -q1[1,j]; p1[1,j] <- -p1[1,j]
-              }
-
-
-              while(q1[2,j] <= 0 || q1[2,j] >= 2*pi) {
-                if(q1[2,j] <= 0) {
-                  q1[2,j] <- -q1[2,j]; p1[2,j] <- -p1[2,j]
-                } else {
-                  q1[2,j] <- 4*pi - q1[2,j]; p1[2,j] <- -p1[2,j]
-                }
-              }
-            }
-
-            p <- p1; q <- q1
-          }
-          # Make a full step for the momentum, except at end of trajectory
-
-          if(any(is.nan(c(p, q)))) {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          } else if (i!=L)   {
-            p <- p - epsilon * (- grad_univm_all_comp(data.rad, q, pi.mix.1, ncores)
-                                + matrix(c(1/gam.scale + (1- 1/gam.scale)/q[1,], 0), ncol=1) ) # the second term in the bracket arises from prior
-          }
-        }
-
-        if(!broken && !kappa.large){
-          if(any(is.nan(c(p, q)))){
-            broken <- TRUE
-          } else {
-            # Make a half step for momentum at the end.
-
-            p <- p - (epsilon/2) * (- grad_univm_all_comp(data.rad, q, pi.mix.1, ncores)
-                                    + matrix(c(1/gam.scale + (1- 1/gam.scale)/q[1,], 0), ncol=1) ) # the second term in the bracket arises from prior
-          }
-        }
-
-        if(any(is.nan(p))){
-          broken <- TRUE
-        } else {
-          # Negate momentum at end of trajectory to make the proposal symmetric
-
-          p <-  -p
-        }
-      }
-
-      if (iter > 100 && mean(accpt.par.mat.all[1:iter]) < 0.05) {
-        broken <- TRUE
-      }
-
-      if (broken) {
-        print("Acceptance rate too low. Automatically restarting with a smaller \'epsilon\'.")
-        iter <- 2
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-
-
-        par.mat.all[,,iter] <- par.mat.1
-        pi.mix.all[,iter] <- pi.mix.1
-        llik.all[iter] <- llik.1
-        lprior.all[iter] <- lprior.1
-        lpd.all[iter] <- lpd.1
-        accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-        next
-
-      }
-
-      # Evaluate potential and kinetic energies at start and end of trajectory
-
-      current_U <- -lpd.1
-      current_K <- sum(current_p^2) / 2
-
-      if(kappa.large) {
-        proposed_U <- proposed_K <- Inf
-      } else {
-        par.mat.prop <- q
-        l.c.univm.prop <- log_const_univm_all(par.mat.prop)
-
-        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1,], gam.loc, gam.scale))
-
-        llik.prop <- llik_univm_full(data.rad, q, pi.mix.1, l.c.univm.prop, ncores)
-
-        proposed_U <- -(llik.prop + lprior.prop)
-        proposed_K <- sum(p^2) / 2
-      }
-
-      exp(current_U-proposed_U+current_K-proposed_K)
-      # Accept or reject the state at end of trajectory, returning either
-      # the position at the end of the trajectory or the initial position
-
-      if (runif(1) < exp(current_U-proposed_U+current_K-proposed_K))    {
-        par.mat.1 <- signif(par.mat.prop, 8)
-        lprior.1 <- signif(lprior.prop, 8)
-        llik.1 <- signif(llik.prop, 8)
-        lpd.1 <- signif(-proposed_U, 8)
-        accpt.par.mat <- 1
-        l.c.univm.1 <- signif(l.c.univm.prop, 8)
-      }
-
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.univm" = l.c.univm.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.par.mat" = accpt.par.mat)
-
-      par.mat.all[,,iter] <- par.mat.1
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-      # tuning epsilon with first 20 draws
-      if(autotune && iter == iter.tune && mean(accpt.par.mat.all[2:(iter.tune+1)]) < 0.6) {
-        iter <- 2
-        ntune <- ntune + 1
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter + 1
-
-    }
-  }
-
-  if(ncomp == 1 && grepl(method, "rwmh")) # using rwmh
-  {
-
-    while(iter <= (n.iter+1)) {
-      pi.mix.1 <- 1
-      par.mat.old <- MC$par.mat
-      l.c.univm.old <- MC$l.c.univm
-      llik_new.pi <- MC$llik
-
-      #----------------------------------------------------------------------------------
-      #generating kappa
-      #----------------------------------------------------------------------------------
-
-      k.1.old <- MC$par.mat[1, ]
-      mu.1.old <- MC$par.mat[2, ]
-
-      k.1.prop <- pmax(k.1.old + rnorm(ncomp, 0, propscale[1]), 1e-6)
-      prop.mat <- unname(rbind(k.1.prop, mu.1.old))
-      l.c.univm.prop <- as.numeric(log_const_univm_all(prop.mat))
-
-      llik_old <- llik_new.pi
-      lprior_old <- MC$lprior
-
-      llik_prop <- llik_univm_full(data.rad, prop.mat, pi.mix.1, l.c.univm.prop, ncores)
-      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(k.1.prop, gam.loc, gam.scale))
-
-      lpd_old <- llik_old + lprior_old
-      lpd_prop <- llik_prop + lprior_prop
-
-      if (runif(1) <  exp(lpd_prop-lpd_old) ) {
-        k.1 <- k.1.prop
-        accpt.kappa <- 1
-        l.c.univm.1 <- signif(l.c.univm.prop, 8)
-        llik_new <- signif(llik_prop, 8)
-        lprior.1 <- signif(lprior_prop, 8)
-        par.mat_new_k <- signif(prop.mat, 8)
-      } else {
-        k.1 <- k.1.old
-        accpt.kappa <- 0
-        l.c.univm.1 <- l.c.univm.old
-        llik_new <- llik_old
-        lprior.1 <- lprior_old
-        par.mat_new_k <- par.mat.old
-      }
-
-
-      #----------------------------------------------------------------------------------
-      #generating mu
-      #----------------------------------------------------------------------------------
-      mu.1.prop <- prncp_reg(MC$par.mat[2, ] + rnorm(ncomp,0,propscale[2]))
-      prop.mat <- unname(rbind(k.1, mu.1.prop))
-
-      llik_new.prop <- llik_univm_full(data.rad, prop.mat, pi.mix.1, l.c.univm.1, ncores)
-
-      if (runif(1) <  exp(llik_new.prop-llik_new) ) {
-        par.mat.1 <- signif(prop.mat, 8)
-        accpt.mu <- 1
-        llik.1 <- signif(llik_new.prop, 8)
-      } else {
-        par.mat.1 <- par.mat_new_k
-        accpt.mu <- 0
-        llik.1 <- llik_new
-      }
-
-      lpd.1 <- llik.1 + lprior.1
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.univm" = l.c.univm.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.kappa" = accpt.kappa, "accpt.mu" = accpt.mu)
-
-      par.mat.all[,,iter] <- par.mat.1
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.kappa.all[iter] <- accpt.kappa
-      accpt.mu.all[iter] <- accpt.mu
-
-      # tuning propscale with first 20 draws
-      if(autotune && iter == iter.tune && (mean(accpt.kappa.all[2:(iter.tune+1)]) < 0.6 ||
-                                           mean(accpt.mu.all[2:(iter.tune+1)]) < 0.6)) {
-        iter <- 2
-        ntune <- ntune + 1
-        propscale <- propscale/2
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter+1
-
-    }
-  }
-  #******************************************************************************************
-
-  #******************************************************************************************
-  # multiple component model
-  #******************************************************************************************
-
-  if(ncomp > 1 && grepl(method, "hmc")) # using hmc
-  {
-    if(epsilon.random)
-      epsilon_vec <- runif(n.iter, min = 0.9*epsilon, max = 1.1*epsilon)
-    if(L.random)
-      L_vec <- sample(1:L, n.iter, replace = TRUE)
-
-
-    while(iter <= (n.iter+1)) {
-      broken <- FALSE
-      kappa.large <- FALSE
-
-      #----------------------------------------------------------------------------------
-      #generating mixture proportions
-      #----------------------------------------------------------------------------------
-      pi.mix.old <- MC$pi.mix
-      par.mat.old <- MC$par.mat
-      l.c.univm.old <- MC$l.c.univm
-
-
-      # Gibbs Sampler
-      {
-        post.wt <- mem_p_univm(data.rad, par.mat.old, pi.mix.old, l.c.univm.old, ncores)
-        clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
-        n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp) #vector of component sizes
-        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
-        llik_new.pi <- llik_univm_full(data.rad, par.mat.old, pi.mix.1, l.c.univm.old, ncores)
-      }
-
-      #----------------------------------------------------------------------------------
-      #generating par.mat by HMC
-      #----------------------------------------------------------------------------------
-
-      par.mat.1 <- par.mat.old
-      lprior.1 <- MC$lprior
-      llik.1 <- llik_new.pi
-      lpd.1 <- llik.1 + lprior.1
-      l.c.univm.1 <- MC$l.c.univm
-      accpt.par.mat <- 0
-
-
-      current_q <- par.mat.1
-      current_p <- matrix(rnorm(2*ncomp, 0, 1), nrow = 2)  # independent standard normal variates
-      p <- current_p
-      q <- current_q
-
-      if(L.random)
-        L <- L_vec[iter-1]
-
-      if(epsilon.random)
-        epsilon <- epsilon_vec[iter-1]
-
-      # Do leapfrog with L and epsilon
-      {
-        # Make a half step for momentum at the beginning
-
-        p <- p - (epsilon/2) * (- grad_univm_all_comp(data.rad, q, pi.mix.1, ncores)
-                                + rbind((1/gam.scale + (1- 1/gam.scale)/q[1,]), rep(0, ncomp)) ) # the second term in the bracket arises from prior
-        # Alternate full steps for position and momentum
-
-        for (i in 1:L)
-        {
-          # Make a full step for the position
-
-          q <- q + epsilon * p
-
-          if(all(!is.nan(q)) && any(abs(q[1, ]) >= kappa_upper)) {
-            kappa.large <- TRUE
-            break
-          }
-
-          if(any(is.nan(c(p, q)))) {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          }
-          # Make sure the components of q1 are in the proper ranges
-          {
-            q1 <- q; p1 <- p
-
-            for(j in 1:ncomp) {
-
-              while(q1[1,j] <= 0) {
-                q1[1,j] <- -q1[1,j]; p1[1,j] <- -p1[1,j]
-              }
-
-
-              while(q1[2,j] <= 0 || q1[2,j] >= 2*pi) {
-                if(q1[2,j] <= 0) {
-                  q1[2,j] <- -q1[2,j]; p1[2,j] <- -p1[2,j]
-                } else {
-                  q1[2,j] <- 4*pi - q1[2,j]; p1[2,j] <- -p1[2,j]
-                }
-              }
-            }
-
-            p <- p1; q <- q1
-          }
-          # Make a full step for the momentum, except at end of trajectory
-
-          if(any(is.nan(c(p, q)))) {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          } else if (i!=L){
-            p <- p - epsilon * (- grad_univm_all_comp(data.rad, q, pi.mix.1, ncores)
-                                + rbind((1/gam.scale + (1- 1/gam.scale)/q[1,]), rep(0, ncomp)) ) # the second term in the bracket arises from prior
-          }
-        }
-
-        if(!broken && !kappa.large) {
-          if(any(is.nan(c(p, q)))) {
-            broken <- TRUE
-          } else{
-            # Make a half step for momentum at the end.
-
-            p <- p - (epsilon/2) * (- grad_univm_all_comp(data.rad, q, pi.mix.1, ncores)
-                                    + rbind((1/gam.scale + (1- 1/gam.scale)/q[1,]), rep(0, ncomp)) ) # the second term in the bracket arises from prior
-          }
-        }
-
-        if(any(is.nan(c(p, q)))) {
-          broken <- TRUE
-        } else {
-          # Negate momentum at end of trajectory to make the proposal symmetri
-          p <-  -p
-        }
-
-      }
-
-      if (iter > 100 && mean(accpt.par.mat.all[1:iter]) < 0.05) {
-        broken <- TRUE
-      }
-
-      if (broken) {
-        print("Acceptance rate too low. Automatically restarting with a smaller \'epsilon\'.")
-        iter <- 2
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-
-
-        par.mat.all[,,iter] <- par.mat.1
-        pi.mix.all[,iter] <- pi.mix.old
-        llik.all[iter] <- llik.1
-        lprior.all[iter] <- lprior.1
-        lpd.all[iter] <- lpd.1
-        accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-        next
-
-      }
-
-
-      # Evaluate potential and kinetic energies at start and end of trajectory
-
-      current_U <- -lpd.1
-      current_K <- sum(current_p^2) / 2
-
-      if(kappa.large) {
-        proposed_U <- proposed_K <- Inf
-      } else {
-        par.mat.prop <- q
-        l.c.univm.prop <- log_const_univm_all(par.mat.prop)
-
-        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1,], gam.loc, gam.scale))
-
-        llik.prop <- llik_univm_full(data.rad, q, pi.mix.1, l.c.univm.prop, ncores)
-
-        proposed_U <- -(llik.prop + lprior.prop)
-        proposed_K <- sum(p^2) / 2
-
-      }
-      exp(current_U-proposed_U+current_K-proposed_K)
-      # Accept or reject the state at end of trajectory, returning either
-      # the position at the end of the trajectory or the initial position
-
-      if (runif(1) < exp(current_U-proposed_U+current_K-proposed_K))    {
-        # return (q)  # accept
-        # accpt = 1
-        par.mat.1 <- signif(par.mat.prop, 8)
-        lprior.1 <- signif(lprior.prop, 8)
-        llik.1 <- signif(llik.prop, 8)
-        lpd.1 <- signif(-proposed_U, 8)
-        accpt.par.mat <- 1
-        l.c.univm.1 <- signif(l.c.univm.prop, 8)
-      }
-
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.univm" = l.c.univm.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.par.mat" = accpt.par.mat)
-
-      par.mat.all[,,iter] <- MC$par.mat
-      pi.mix.all[,iter] <- MC$pi.mix
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-      # tuning epsilon with first 20 draws
-      if(autotune && iter == iter.tune && mean(accpt.par.mat.all[2:(iter.tune+1)]) < 0.6) {
-        iter <- 2
-        ntune <- ntune + 1
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter + 1
-
-    }
-  }
-
-  if(ncomp > 1 && grepl(method, "rwmh")) # using rwmh
-  {
-    while(iter <= (n.iter+1)) {
-      #----------------------------------------------------------------------------------
-      #generating mixture proportions
-      #----------------------------------------------------------------------------------
-      pi.mix.old <- MC$pi.mix
-      par.mat.old <- MC$par.mat
-      l.c.univm.old <- MC$l.c.univm
-
-
-      # Gibbs Sampler
-      {
-        post.wt <- mem_p_univm(data.rad, par.mat.old, pi.mix.old, l.c.univm.old, ncores)
-        clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
-        n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp) #vector of component sizes
-        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
-        llik_new.pi <- llik_univm_full(data.rad, par.mat.old, pi.mix.1, l.c.univm.old, ncores)
-      }
-
-
-      #----------------------------------------------------------------------------------
-      #generating kappa
-      #----------------------------------------------------------------------------------
-
-      k.1.old <- MC$par.mat[1, ]
-      mu.1.old <- MC$par.mat[2, ]
-
-      k.1.prop <- pmax(k.1.old + rnorm(ncomp, 0, propscale[1]), 1e-6)
-      prop.mat <- unname(rbind(k.1.prop, mu.1.old))
-      l.c.univm.prop <- as.numeric(log_const_univm_all(prop.mat))
-
-      llik_old <- llik_new.pi
-      lprior_old <- MC$lprior
-
-      llik_prop <- llik_univm_full(data.rad, prop.mat, pi.mix.1, l.c.univm.prop, ncores)
-      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(k.1.prop, gam.loc, gam.scale))
-
-      lpd_old <- llik_old + lprior_old
-      lpd_prop <- llik_prop + lprior_prop
-
-      if (runif(1) <  exp(lpd_prop-lpd_old) ) {
-        k.1 <- k.1.prop
-        accpt.kappa <- 1
-        l.c.univm.1 <- signif(l.c.univm.prop, 8)
-        llik_new <- signif(llik_prop, 8)
-        lprior.1 <- signif(lprior_prop, 8)
-        par.mat_new_k <- signif(prop.mat, 8)
-      } else {
-        k.1 <- k.1.old
-        accpt.kappa <- 0
-        l.c.univm.1 <- l.c.univm.old
-        llik_new <- llik_old
-        lprior.1 <- lprior_old
-        par.mat_new_k <- par.mat.old
-      }
-
-
-      #----------------------------------------------------------------------------------
-      #generating mu
-      #----------------------------------------------------------------------------------
-      mu.1.prop <- prncp_reg(MC$par.mat[2, ] + rnorm(ncomp,0,propscale[2]))
-      prop.mat <- unname(rbind(k.1, mu.1.prop))
-
-      llik_new.prop <- llik_univm_full(data.rad, prop.mat, pi.mix.1, l.c.univm.1, ncores)
-
-      if (runif(1) <  exp(llik_new.prop-llik_new) ) {
-        par.mat.1 <- signif(prop.mat, 8)
-        accpt.mu <- 1
-        llik.1 <- signif(llik_new.prop, 8)
-      } else {
-        par.mat.1 <- par.mat_new_k
-        accpt.mu <- 0
-        llik.1 <- llik_new
-      }
-
-      lpd.1 <- llik.1 + lprior.1
-
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.univm" = l.c.univm.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.kappa" = accpt.kappa, "accpt.mu" = accpt.mu)
-
-      par.mat.all[,,iter] <- MC$par.mat
-      pi.mix.all[,iter] <- MC$pi.mix
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.kappa.all[iter] <- accpt.kappa
-      accpt.mu.all[iter] <- accpt.mu
-
-      # tuning propscale with first 20 draws
-      if(autotune && iter == iter.tune && (mean(accpt.kappa.all[2:(iter.tune+1)]) < 0.6 ||
-                                           mean(accpt.mu.all[2:(iter.tune+1)]) < 0.6)) {
-        iter <- 2
-        ntune <- ntune + 1
-        propscale <- propscale/2
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter+1
-
-    }
-  }
-  #******************************************************************************************
-  if(grepl(method, "hmc")) {
-    if(epsilon.random) {
-      epsilon_ave <- mean(epsilon_vec)
-    } else{
-      epsilon_ave <- epsilon
-    }
-    if(L.random) {
-      L_ave <- mean(L_vec)
-    } else{
-      L_ave <- L
-    }
-  }
-
-  if(grepl(method, "rwmh")) {
-    propscale_final <- propscale
-  }
-
-  if(show.progress) cat("\n")
-
-  allpar_val <- array(1, dim = c(3, ncomp, n.iter+1))
-  allpar_val[1, , ] <- pi.mix.all
-  allpar_val[2:3, , ] <- par.mat.all
-
-  allpar_name <- c("pmix", modelpar.names)
-  dimnames(allpar_val)[[1]] <- c("pmix", modelpar.names)
-
-  result <- list("par.value" = allpar_val, "par.name" = allpar_name, "llik" = llik.all,
-                 "accpt.modelpar" = accpt.par.mat.all,
-                 "accpt.kappa" = accpt.kappa.all, "accpt.mu" = accpt.mu.all,
-                 "lpd" = lpd.all, "model" = curr.model, "method" = method, "clus.ind" = clus.ind,
-                 "epsilon.random" = epsilon.random, "epsilon" = epsilon_ave,
-                 "L.random" = L.random, "L" = L_ave, "type" = "uni",
-                 "propscale.final" = propscale_final, "data" = data.rad,
-                 "gam.loc" = gam.loc, "gam.scale" = gam.scale, "pmix.alpha" = pmix.alpha,
-                 "n.data" = n.data, "ncomp" = ncomp, "n.iter" = n.iter)
-
-  class(result) <- "angmcmc"
-
-  return(result)
+fit_vmmix <- function(...)
+{
+  fit_angmix(model="vm", ...)
 }

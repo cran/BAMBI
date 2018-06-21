@@ -4,81 +4,21 @@
 \alias{fit_vmsinmix}
 \title{Fitting bivariate von Mises sine model mixtures using MCMC}
 \usage{
-fit_vmsinmix(data, ncomp, start_par = list(), method = "hmc",
-  epsilon = 0.01, L = 10, epsilon.random = TRUE, L.random = FALSE,
-  propscale = rep(0.01, 5), n.iter = 500, gam.loc = 0, gam.scale = 1000,
-  pmix.alpha = 1/2, norm.var = 1000, autotune = FALSE, iter.tune = 10,
-  ncores, show.progress = TRUE)
+fit_vmsinmix(...)
 }
 \arguments{
-\item{data}{vector of observations. If outside, the values are transformed into the scale \eqn{[0, 2\pi)}.}
-
-\item{ncomp}{number of components in the mixture model. If \code{comp == 1}, a single component model is fitted.}
-
-\item{start_par}{list with elements \code{pmix} (ignored if \code{comp == 1}), \code{kappa1, kappa2, mu1} and \code{mu2},
-all being vectors of length same as \code{ncomp},
-providing the starting values; with \eqn{j}-th component of each vector corresponding to the \eqn{j}-th component of the
-mixture distribution. If missing, moment estimators based on random components are used.}
-
-\item{method}{MCMC strategy to be used for the model paramters:  \code{"hmc"} or \code{"rwmh"}.}
-
-\item{epsilon, L}{tuning parameters for HMC; ignored if \code{method = "rwmh"}. \code{epsilon} (step-size) is a quantity in
-\eqn{[0, 1)} and \code{L} (leapfrog steps) is a positive integer.}
-
-\item{epsilon.random}{logical. Should a random value from  Uniform(0, \code{epsilon}) be used for \code{epsilon}
-at each iteration? Ignored if \code{method = "rwmh"}.}
-
-\item{L.random}{logical. Should a random value from discrete Uniform(1,..., \code{L}) be used for \code{L}
-at each iteration? Ignored if \code{method = "rwmh"}.}
-
-\item{propscale}{tuning parameters for RWMH; a vector of size 5 representing the variances for the proposal normal densities
-for \eqn{\kappa_1, \kappa_2, \kappa_3, \mu_1} and \eqn{\mu_2} respectively. Ignored if \code{method = "hmc"}.}
-
-\item{n.iter}{number of iterations for the Markov Chain.}
-
-\item{gam.loc, gam.scale}{location and scale (hyper-) parameters for the gamma prior for \code{kappa1} and \code{kappa2}. See
-\link{dgamma}. Defaults are \code{gam.loc = 0, gam.scale = 1000} that makes the prior non-informative.}
-
-\item{pmix.alpha}{concentration parameter(s) for the Dirichlet prior for \code{pmix}. Must either be a positive real number, or a vector
-with positive entries and of the same size as \code{pmix}. The default is 1/2 which corresponds to the Jeffreys prior.}
-
-\item{norm.var}{variance (hyper-) parameter in the normal prior for \code{kappa3}. (Prior mean is zero).
-Default is 1000 that makes the prior non-informative.}
-
-\item{autotune}{logical. Should the Markov chain auto-tune the parameters (\code{epsilon} in HMC and
-\code{propscale} in RWMH) on the basis of acceptances in \code{iter.tune}? (The iterations used to tune the
-parameters are discarded.) Set to \code{FALSE} by default.}
-
-\item{iter.tune}{number of initial iterations used to tune the parameters (\code{epsilon} in HMC and
-\code{propscale} in RWMH). Default is 20. Ignored if \code{autotune == FALSE}.}
-
-\item{ncores}{number of CPU cores to be used for computing the likelihood, the posterior weight matrix for
-the Gibbs Sampler of mixture proportions and the gradient in HMC in parallel. Default is all of the available cores
-(obtained via \link{detectCores}). Note that parallelization is implemented using OpenMP.  This argument is ignored and the
-computations are done serially if OpenMP is not available.}
-
-\item{show.progress}{logical. Should a progress bar be included?}
-}
-\value{
-returns an angmcmc object.
+\item{...}{arguments (other than \code{model}) passed to \link{fit_angmix}}
 }
 \description{
 Fitting bivariate von Mises sine model mixtures using MCMC
 }
 \details{
-\code{fit_vmsinmix} generates MCMC samples of vmsin mixture model parameters, and returns an
-angmcmc object as the output, which can be used as an argument for diagnostics and estimation
-functions.
-
-Default \code{method} is \code{"hmc"}.
-
-If the acceptance rate drops below 5\% after 100 or more HMC iterations, \code{epsilon} is automatically lowered, and the
-Markov chain is restarted at the current parameter values.
+Wrapper for \link{fit_angmix} with \code{model = "vmsin"}
 }
 \examples{
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 fit.vmsin.20
 
 }

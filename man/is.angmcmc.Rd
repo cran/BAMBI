@@ -2,18 +2,23 @@
 % Please edit documentation in R/BAMBI.R
 \name{is.angmcmc}
 \alias{is.angmcmc}
+\alias{angmcmc}
 \title{Angular MCMC (\code{angmcmc}) Object}
 \usage{
 is.angmcmc(object)
+
+angmcmc(...)
 }
 \arguments{
 \item{object}{any R object}
+
+\item{...}{arguments required to make an angmcmc object. See details}
 }
 \value{
 logical. Is the input an angmcmc object?
 }
 \description{
-Checking if an R object is angmcmc
+Checking for and creating an angmcmc object
 }
 \details{
 \code{angmcmc} objects are classified lists that are created when any of the five mixture model fitting
@@ -30,6 +35,6 @@ functions available in \code{BAMBI} for making further inferences.
 \examples{
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 is.angmcmc(fit.vmsin.20)
 }

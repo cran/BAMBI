@@ -5,21 +5,19 @@
 \alias{BIC.angmcmc}
 \title{AIC and BIC for angmcmc objects}
 \usage{
-\method{AIC}{angmcmc}(object, burnin = 1/3, thin = 1, k = 2, ...)
+\method{AIC}{angmcmc}(object, ..., k = 2)
 
-\method{BIC}{angmcmc}(object, burnin = 1/3, thin = 1, ...)
+\method{BIC}{angmcmc}(object, ...)
 }
 \arguments{
-\item{object}{an angmcmc object.}
+\item{object}{a fitted model object for which there exists a
+    \code{logLik} method to extract the corresponding log-likelihood, or
+    an object inheriting from class \code{logLik}.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
-
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{...}{additional argument to be passed to \link{logLik.angmcmc}}
 
 \item{k}{numeric, the \emph{penalty} per parameter to be used; the
     default \code{k = 2} is the classical AIC.}
-
-\item{...}{optionally more fitted model objects.}
 }
 \value{
 AIC computes the AIC and BIC computes BIC for \code{angmcmc} objects.
@@ -28,16 +26,16 @@ AIC computes the AIC and BIC computes BIC for \code{angmcmc} objects.
 AIC and BIC for angmcmc objects
 }
 \details{
-Let \eqn{\hat{L}} be the maximum value of the likelihood function for the model, \eqn{m} be the number of
-estimated parameters in the model and \eqn{n} be the number of data points. Then AIC and BIC are defined as
-\eqn{AIC = -2 \log \hat{L} + mk} and \eqn{BIC = -2 \log \hat{L} + m \log(n)}.
+Note that \code{AIC.angmcmc} and \code{BIC.angmcmc} calls \link{logLik.angmcmc},
+which calculates Bayes estimate of the log-likelihood and *not* the maximum
+likelihood. As such, care needs to be taken while using theses quantities.
 
 \eqn{\hat{L}} is estimated by the sample maximum obtained from the MCMC realizations.
 }
 \examples{
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 AIC(fit.vmsin.20)
 BIC(fit.vmsin.20)
 

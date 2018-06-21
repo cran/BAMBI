@@ -5,7 +5,7 @@
 \title{Analytic circular variances and correlations for bivariate angular models}
 \usage{
 circ_varcor_model(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 0,
-  mu1 = 0, mu2 = 0, nsim = 10000)
+  mu1 = 0, mu2 = 0, nsim = 10000, ...)
 }
 \arguments{
 \item{model}{bivariate angular model. Must be one of \code{"vmsin"},
@@ -20,6 +20,8 @@ the analytical formulas.}
 
 \item{nsim}{Monte Carlo sample size. Ignored if all of \code{kappa1}, \code{kappa2}
 and \code{abs(kappa3)} are < 150 or if model = \code{"wnorm2"}.}
+
+\item{...}{additional model specific argment}
 }
 \value{
 Returns a list with elements \code{var1}, \code{var2} (circular variances for the
@@ -39,15 +41,27 @@ JS and FL correlation coefficients can be found in Mardia and Jupp (2009),
 Jammalamadaka and Sarma (1988) and Fisher and Lee (1983) respectively.
 For \code{vmsin} and \code{vmcos} these expressions are provided in Chakraborty and Wong (2018).
 
-Because the analytic expressions in \code{vmsin} and \code{vmcos} models involve infinite sums of product of Bessel functions,
-if any of \code{kappa1}, \code{kappa2} and \code{kappa3} is larger
+Because the analytic expressions in \code{vmsin} and \code{vmcos} models involve infinite sums
+of product of Bessel functions,
+if any of \code{kappa1}, \code{kappa2} and \code{abs(kappa3)} is larger
 than or equal to 150, IID Monte Carlo with sample size \code{nsim} is used
-to approximate \code{rho_js} for numerical stability. From \code{rho_js},
+to approximate \code{rho_js} for numerical stability.  From \code{rho_js},
 \code{rho_fl} is computed using Corollary 2.2 in
 Chakraborty and Wong (2018), which makes cost-complexity for
 the \code{rho_fl} evaluation to be of order  O(\code{nsim}) for \code{vmsin}
 and \code{vmcos} models. (In general,  \code{rho_fl} evaluation
 is of order O(\code{nsim}^2)).
+
+In addition, for the \code{vmcos} model, when \code{-150 < kappa3 < -1}
+or \code{50 < max(kappa1, kappa2, abs(kappa3)) <= 150}, the analytic formulas
+in Chakraborty and Wong (2018) are used; however, the reciprocal of the normalizing
+constant and its partial derivatives are all calculated numerically via (quasi) Monte carlo method for
+numerical stability. These (quasi) random numbers can be provided through the
+argument \code{qrnd}, which must be a two column matrix, with each element being
+a  (quasi) random number between 0 and 1. Alternatively, if \code{n_qrnd} is
+provided (and \code{qrnd} is missing), a two dimensional sobol sequence of size \code{n_qrnd} is
+generated via the function \link{sobol} from the R package \code{qrng}. If none of \code{qrnd}
+or \code{n_qrnd} is available, a two dimensional sobol sequence of size 1e4 is used.
 }
 \examples{
 circ_varcor_model("vmsin", kappa1= 1, kappa2 = 2, kappa3 = 3)

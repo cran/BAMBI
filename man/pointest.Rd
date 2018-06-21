@@ -4,22 +4,25 @@
 \alias{pointest}
 \title{Point estimates for parameters from an angmcmc object}
 \usage{
-pointest(object, fn = mean, par.name = NULL, comp.label = NULL,
-  burnin = 1/3, thin = 1)
+pointest(object, fn = mean, par.name, comp.label, chain.no, ...)
 }
 \arguments{
 \item{object}{angular MCMC object.}
 
-\item{fn}{function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean.}
+\item{fn}{function, or a single character string specifying its name, to evaluate on MCMC samples to estimate
+parameters.  Defaults to \code{mean}, which computes the estimated posterior mean.
+Note that if \code{fn = "MODE"} (warning: not \code{"mode"}) or \code{fn = "MAP"}, then the maximum aposteriori estimate (MAP) is
+calculated.}
 
 \item{par.name}{vector of names of parameters for which point estimates are to be computed.  If \code{NULL}, results for all parameters are provided.}
 
 \item{comp.label}{vector of component labels (positive integers, e.g., \code{1, 2, ...}) for which point estimates are to be computed.
 If \code{NULL}, results for all components are provided.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
+\item{chain.no}{vector of chain numbers whose samples are to be be used.
+in the estimation. By default all chains are used.}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{...}{additional arguments to be passed to the function.}
 }
 \value{
 Returns a matrix of point estimates, or vector of point estimates if \code{length(par.name)==1} or \code{length(comp.label)==1}.
@@ -31,9 +34,11 @@ Point estimates for parameters from an angmcmc object
 # first fit a vmsin mixture model
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 # estimate parameters by sample mean
 (est_mean <- pointest(fit.vmsin.20))
 # estimate parameters by sample median
 (est_median <- pointest(fit.vmsin.20, fn = median))
+# estimate parameters by MAP
+(est_median <- pointest(fit.vmsin.20, fn = "MODE"))
 }

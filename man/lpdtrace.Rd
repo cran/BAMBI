@@ -2,28 +2,39 @@
 % Please edit documentation in R/all_diagnostics.R
 \name{lpdtrace}
 \alias{lpdtrace}
-\title{Trace plot of log posterior density or log likelihood from an angmcmc object}
+\title{Trace and autocorrelation plots of log posterior density or log likelihood from an angmcmc object}
 \usage{
-lpdtrace(object, use.llik = FALSE, burnin = 1/3, thin = 1)
+lpdtrace(object, chain.no, use.llik = FALSE, plot.autocor = FALSE,
+  press.enter = TRUE, lag.max = NULL, ...)
 }
 \arguments{
 \item{object}{angular MCMC object.}
 
+\item{chain.no}{vector of chain numbers whose samples are to be be used.
+in the estimation. By default all chains are used.}
+
 \item{use.llik}{logical. Should log likelihood be plotted instead of log posterior? Set
 to \code{FALSE} by default.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
+\item{plot.autocor}{logical. Should the autocorrelations be plotted as well?}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
+\item{press.enter}{logical. Should the next plot in the series
+be shown after you press "Enter"? Ignored if only a single plot
+is to be created.}
+
+\item{lag.max}{maximum lag for autocorrelation.  Passed to \link{acf}. Ignored if
+\code{plot.autocor = FALSE}.}
+
+\item{...}{unused}
 }
 \description{
-Trace plot of log posterior density or log likelihood from an angmcmc object
+Trace and autocorrelation plots of log posterior density or log likelihood from an angmcmc object
 }
 \examples{
 # first fit a vmsin mixture model
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 # log posterior density trace
 lpdtrace(fit.vmsin.20)
 # log likelihood trace

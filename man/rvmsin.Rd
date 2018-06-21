@@ -5,9 +5,11 @@
 \alias{dvmsin}
 \title{The bivariate von Mises sine model}
 \usage{
-rvmsin(n, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0)
+rvmsin(n, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0,
+  method = NULL)
 
-dvmsin(x, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0)
+dvmsin(x, kappa1 = 1, kappa2 = 1, kappa3 = 0, mu1 = 0, mu2 = 0,
+  log = FALSE)
 }
 \arguments{
 \item{n}{number of observations. Ignored if at least one of the other parameters have length k > 1, in which
@@ -17,8 +19,12 @@ case, all the parameters are recycled to length k to produce k random variates.}
 
 \item{mu1, mu2}{vectors of mean parameters.}
 
+\item{method}{Rejection sampling method to be used. Available choices are \code{"naive"} or \code{"vmprop"}. See details.}
+
 \item{x}{bivariate vector  or a two-column matrix with each row being a bivariate vector of angles
 (in radians)  where the densities are to be evaluated.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dvmsin} gives the density  and \code{rvmsin} generates random deviates.
@@ -32,6 +38,17 @@ The bivariate von Mises sine model density at the point \eqn{x = (x_1, x_2)} is 
 where
 \deqn{T_1 = x_1 - \mu_1;  T_2 = x_2 - \mu_2}
 and \eqn{C_s (\kappa_1, \kappa_2, \kappa_3)} denotes the normalizing constant for the sine model.
+
+Two different rejection sampling methods are implemented for random generation. If \code{method = "vmprop"}, then first the y-marginal
+is drawn from the associated marginal density, and then x is generated from the conditional distributio of x given y. The marginal generation of
+y is implemented in a rejection sampling scheme with proposal being either von Mises (if the target marginal density is unimodal), or a mixture of
+von Mises (if bimodal), with optimally chosen concentration. This the method suggested in Mardia et al. (2007). On the other hand, when
+\code{method = "naive"} a (naive) bivariate rejection sampling scheme with (bivariate) uniform propsoal is used.
+
+Note that although method = \code{"vmprop"} is expected to provide better efficiency, especially when the density is highly concentrated, it does have
+an (often substantial) overhead due to the optimziation step required to find a reasonable proposal concentration parameter.
+This can compensate the efficiency gains of this method, especially when \code{n} is not large (<= 100) or \code{max(kappa1, kappa2, abs(kappa3))} is small (< 0.1).
+As such, \code{method = "naive"} by default in such cases. Otherwise, \code{method} defaults to \code{"vmprop"}.
 }
 \examples{
 kappa1 <- c(1, 2, 3)

@@ -9,7 +9,8 @@ circ_cor(x, type = "js")
 \arguments{
 \item{x}{two column matrix. NA values are not allowed.}
 
-\item{type}{type of the circular correlation. Must be one of "fl" or "js" or "kendall". See details.}
+\item{type}{type of the circular correlation.
+Must be one of "fl", "js", "tau1" and "tau2". See details.}
 }
 \description{
 Sample circular correlation coefficients

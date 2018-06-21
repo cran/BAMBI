@@ -5,12 +5,27 @@
 #' @inheritParams rvmsin
 #' @param mu1,mu2 vectors of mean parameters.
 #' @param kappa1,kappa2,kappa3 vectors of concentration parameters; \code{kappa1, kappa2 > 0}.
-#' @details The bivariate von Mises cosine model density at the point \eqn{x = (x_1, x_2)} is given by
+#' @param ... additional arguments to be passed to dvmcos. See details.
+#'
+#' @details
+#' The bivariate von Mises cosine model density at the point \eqn{x = (x_1, x_2)} is given by
 #' \deqn{f(x) = C_c (\kappa_1, \kappa_2, \kappa_3) \exp(\kappa_1 \cos(T_1) + \kappa_2 \cos(T_2) + \kappa_3 \cos(T_1 - T_2))}
 #' where
 #' \deqn{T_1 = x_1 - \mu_1;  T_2 = x_2 - \mu_2}
 #' and \eqn{C_c (\kappa_1, \kappa_2, \kappa_3)} denotes the normalizing constant for the cosine model.
+#'
+#' #' Because \eqn{C_c} involves an infinite series with product of Bessel functions,
+#' if \code{kappa3 < -5} or \code{max(kappa1, kappa2, abs(kappa3)) > 50}, \eqn{C_c} is evaluated
+#' numerically via (quasi) Monte carlo method for
+#' numerical stability. These (quasi) random numbers can be provided through the
+#' argument \code{qrnd}, which must be a two column matrix, with each element being
+#' a  (quasi) random number between 0 and 1. Alternatively, if \code{n_qrnd} is
+#' provided (and \code{qrnd} is missing), a two dimensional sobol sequence of size \code{n_qrnd} is
+#' generated via the function \link{sobol} from the R package \code{qrng}. If none of \code{qrnd}
+#' or \code{n_qrnd} is available, a two dimensional sobol sequence of size 1e4 is used.
+#'
 #' @return \code{dvmcos} gives the density  and \code{rvmcos} generates random deviates.
+#'
 #' @examples
 #' kappa1 <- c(1, 2, 3)
 #' kappa2 <- c(1, 6, 5)
@@ -41,7 +56,7 @@
 #' # length, and dvmcos returns a vector with ith element being the
 #' # density evaluated at ith row of x with parameter values kappa1[i],
 #' # kappa2[i], # kappa3[i], mu1[i] and mu2[i]
-#' dvmcos(x[1, ], kappa1, kappa2, kappa3, mu1, mu2)
+#' dvmcos(x, kappa1, kappa2, kappa3, mu1, mu2)
 #'
 #' # when parameters are all scalars, number of observations generated
 #' # by rvmcos is n
@@ -54,89 +69,213 @@
 #' rvmcos(n, kappa1, kappa2, kappa3, mu1, mu2)
 #'
 #' @export
-
-rvmcos <- function(n, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0) {
+rvmcos <- function(n, kappa1=1, kappa2=1,
+                   kappa3=0, mu1=0, mu2=0, method=NULL)
+{
   if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be nonnegative")
   if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
   if(any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
+  if(n < 0) stop("invalid n")
 
-  opt_obj <- function(k1=1, k2=1, k3=0, mu1=0, mu2=0) {
-    # for numerical stability, if k3 < 0, fabs(k1+k3) < 1e-5 or fabs(k2+k3) < 1e-5
-    # make k3 = k3 * (1+1e-5)
-    if (k3 < 0) {
-      while (abs(k1 + k3) < 1e-5 || abs(k2 + k3) < 1e-5) {
-        k3 = k3*(1+1e-5)
-      }
-    }
-    obj <- optim(c(0,0), fn = function(x) -(k1*cos(x[1]-mu1)+k2*cos(x[2]-mu2)+k3*cos(x[1]-x[2]-mu1+mu2)),
-                 gr = function(x)  -c(-k1*sin(x[1]-mu1)-k3*sin(x[1]-x[2]-mu1+mu2),
-                                      -k2*sin(x[2]-mu2)+k3*sin(x[1]-x[2]-mu1+mu2)))
-    -obj$value
 
+  if (is.null(method)) {
+    if (n > 100) method <- "vmprop"
+    else method <- "naive"
   }
 
-  if(max(length(kappa1), length(kappa2), length(kappa3), length(mu1), length(mu2)) > 1) {
+  if (!method %in% c("naive", "vmprop"))
+    stop("method must be either \'naive\' or \'vmprop\'")
+
+  if(max(length(kappa1), length(kappa2), length(kappa3),
+         length(mu1), length(mu2)) > 1) {
     expanded <- expand_args(kappa1, kappa2, kappa3, mu1, mu2)
     k1 <- expanded[[1]]; k2 <- expanded[[2]]; k3 <- expanded[[3]]
     mu1 <- expanded[[4]]; mu2 <- expanded[[5]]
-    upper_bd_all <- vapply(1:length(k1),
-                           function(h) opt_obj(k1[h], k2[h], k3[h], mu1[h], mu2[h]),
-                           0)
-    rcos_manypar(k1, k2, k3, mu1, mu2, upper_bd_all)
+
+    t(vapply(1:length(k1),
+             function(j) rvmcos_1par(1, k1[j], k2[j], k3[j],
+                                     mu1[j], mu2[j], "naive"), c(0, 0)))
   } else {
-    upper_bd <- opt_obj(kappa1, kappa2, kappa3, mu1, mu2)
-    rcos_onepar(n, kappa1, kappa2, kappa3, mu1, mu2, upper_bd)
+    if (is.null(method) & max(kappa1, kappa2, abs(kappa3)) < 0.1)
+      method <- "vmprop"
+
+    rvmcos_1par(n, kappa1, kappa2, kappa3, mu1, mu2, method)
   }
+
 }
+
+
+# rvmcos <- function(n, kappa1=1, kappa2=1, kappa3=0,
+#                    mu1=0, mu2=0) {
+#   if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be nonnegative")
+#   if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
+#   if(any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
+#
+#   opt_obj <- function(k1=1, k2=1, k3=0, mu1=0, mu2=0) {
+#     # for numerical stability, if k3 < 0, fabs(k1+k3) < 1e-5 or fabs(k2+k3) < 1e-5
+#     # make k3 = k3 * (1+1e-5)
+#     if (k3 < 0) {
+#       while (abs(k1 + k3) < 1e-5 || abs(k2 + k3) < 1e-5) {
+#         k3 = k3*(1+1e-5)
+#       }
+#     }
+#     obj <- optim(c(0,0), fn = function(x) -(k1*cos(x[1]-mu1)+k2*cos(x[2]-mu2)+k3*cos(x[1]-x[2]-mu1+mu2)),
+#                  gr = function(x)  -c(-k1*sin(x[1]-mu1)-k3*sin(x[1]-x[2]-mu1+mu2),
+#                                       -k2*sin(x[2]-mu2)+k3*sin(x[1]-x[2]-mu1+mu2)))
+#     -obj$value
+#
+#   }
+#
+#   if(max(length(kappa1), length(kappa2), length(kappa3), length(mu1), length(mu2)) > 1) {
+#     expanded <- expand_args(kappa1, kappa2, kappa3, mu1, mu2)
+#     k1 <- expanded[[1]]; k2 <- expanded[[2]]; k3 <- expanded[[3]]
+#     mu1 <- expanded[[4]]; mu2 <- expanded[[5]]
+#     upper_bd_all <- vapply(1:length(k1),
+#                            function(h) opt_obj(k1[h], k2[h], k3[h], mu1[h], mu2[h]),
+#                            0)
+#     rcos_manypar(k1, k2, k3, mu1, mu2, upper_bd_all)
+#   } else {
+#     upper_bd <- opt_obj(kappa1, kappa2, kappa3, mu1, mu2)
+#     qrnd_grid <- sobol(1e4, 2, FALSE)
+#     cat(exp(log(const_vmcos(kappa1, kappa2, kappa3,
+#                             qrnd_grid))
+#             - upper_bd)/(4*pi^2))
+#     rcos_onepar(n, kappa1, kappa2, kappa3, mu1, mu2, upper_bd)
+#   }
+# }
 
 
 
 
 #' @rdname rvmcos
+#' @importFrom qrng sobol
 #' @export
-dvmcos <- function(x, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0) {
 
-  if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be nonnegative")
-  if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
-  if(any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
-  if((length(dim(x)) < 2 && length(x) != 2) || (length(dim(x)) == 2 && tail(dim(x), 1) != 2)
-     || (length(dim(x)) > 2)) stop("x must either be a bivariate vector or a two-column matrix")
+dvmcos <- function(x, kappa1=1, kappa2=1, kappa3=0, mu1=0,
+                   mu2=0, log=FALSE, ...) {
+
+  if (any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be nonnegative")
+  if (any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
+  if (any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
+  if ((length(dim(x)) < 2 && length(x) != 2) || (length(dim(x)) == 2 && tail(dim(x), 1) != 2)
+      || (length(dim(x)) > 2)) stop("x must either be a bivariate vector or a two-column matrix")
+
+  ell <- list(...)
+
+  if (!is.null(ell$qrnd_grid)) {
+    qrnd_grid <- ell$qrnd_grid
+    dim_qrnd <- dim(qrnd_grid)
+    if (!is.matrix(qrnd_grid) | is.null(dim_qrnd) |
+        dim_qrnd[2] != 2)
+      stop("qrnd_grid must be a two column matrix")
+    n_qrnd <- dim_qrnd[1]
+  } else if (!is.null(ell$n_qrnd)){
+    n_qrnd <- round(ell$n_qrnd)
+    if (n_qrnd < 1)
+      stop("n_qrnd must be a positive integer")
+    qrnd_grid <- sobol(n_qrnd, 2, FALSE)
+  } else {
+    n_qrnd <- 1e4
+    qrnd_grid <- sobol(n_qrnd, 2, FALSE)
+  }
 
 
   if(max(length(kappa1), length(kappa2), length(kappa3), length(mu1), length(mu2)) > 1) {
     expanded <- expand_args(kappa1, kappa2, kappa3, mu1, mu2)
-    k1 <- expanded[[1]]; k2 <- expanded[[2]]; k3 <- expanded[[3]]
-    mu1 <- expanded[[4]]; mu2 <- expanded[[5]]
-    sobol_grid <- sobol_2d_1e4_from_seed_1
-    par.mat <- rbind(k1,k2,k3,mu1,mu2)
-    l_const_all <- log_const_vmcos_all(par.mat, sobol_grid, ncores = 1)
-    if(length(x) != 2) {
-      x_set <- 1:nrow(x)
-      par_set <- 1:length(kappa1)
-      expndn_set <- expand_args(x_set, par_set)
-      x_set <- expndn_set[[1]]
-      par_set <- expndn_set[[2]]
-      as.vector(dcos_manyx_manypar(x[x_set, ], k1[par_set], k2[par_set], k3[par_set], mu1[par_set], mu2[par_set], l_const_all[par_set]))
-    } else{
-      as.vector(dcos_onex_manypar(x, k1, k2, k3, mu1, mu2, l_const_all))
-    }
+    kappa1 <- expanded[[1]]
+    kappa2 <- expanded[[2]]
+    kappa3 <- expanded[[3]]
+    mu1 <- expanded[[4]]
+    mu2 <- expanded[[5]]
+  }
 
-  } else {
-    sobol_grid <- sobol_2d_1e4_from_seed_1
-    const.vmcos <- const_vmcos(kappa1, kappa2, kappa3, sobol_grid, ncores = 1)
-    if(length(x) != 2){
-      as.vector(dcos_manyx_onepar(x, kappa1, kappa2, kappa3, mu1, mu2, log(const.vmcos)))
-    } else{
-      exp(ldcosnum(x[1], x[2], c(kappa1, kappa2, kappa3, mu1, mu2)))/const.vmcos
+  par.mat <- rbind(kappa1, kappa2, kappa3, mu1, mu2)
+  n_par <- ncol(par.mat)
+  if (length(x) == 2) x <- matrix(x, nrow = 1)
+  n_x <- nrow(x)
+
+
+  l_const_all <- rep(0, n_par)
+  for(j in 1:n_par) {
+    if ((kappa3[j] >= -5 & max(kappa1[j], kappa2[j],
+                               abs(kappa3[j])) <= 50) |
+        abs(kappa3[j]) < 1e-4) {
+      l_const_all[j] <- log(const_vmcos_anltc(kappa1[j], kappa2[j],
+                                              kappa3[j]))
+    } else {
+      l_const_all[j] <- log(const_vmcos_mc(kappa1[j], kappa2[j],
+                                           kappa3[j], qrnd_grid));
     }
   }
 
+  if (n_par == 1) {
+    log_den <- c(ldcos_manyx_onepar(x, kappa1, kappa2, kappa3,
+                                    mu1, mu2, l_const_all))
 
+  } else if (n_x == 1) {
+    log_den <- c(ldcos_onex_manypar(c(x), kappa1, kappa2, kappa3,
+                                    mu1, mu2, l_const_all))
+  } else {
+    x_set <- 1:nrow(x)
+    par_set <- 1:n_par
+    expndn_set <- expand_args(x_set, par_set)
+    x_set <- expndn_set[[1]]
+    par_set <- expndn_set[[2]]
+    log_den <- c(ldcos_manyx_manypar(x[x_set, ], kappa1[par_set],
+                                     kappa2[par_set], kappa3[par_set],
+                                     mu1[par_set], mu2[par_set],
+                                     l_const_all[par_set]))
+  }
+
+  if (log) log_den
+  else exp(log_den)
 
 }
 
+# dvmcos <- function(x, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0) {
+#
+#   if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be nonnegative")
+#   if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
+#   if(any(mu2 < 0 | mu2 >= 2*pi)) mu2 <- prncp_reg(mu2)
+#   if((length(dim(x)) < 2 && length(x) != 2) || (length(dim(x)) == 2 && tail(dim(x), 1) != 2)
+#      || (length(dim(x)) > 2)) stop("x must either be a bivariate vector or a two-column matrix")
+#
+#
+#   if(max(length(kappa1), length(kappa2), length(kappa3), length(mu1), length(mu2)) > 1) {
+#     expanded <- expand_args(kappa1, kappa2, kappa3, mu1, mu2)
+#     k1 <- expanded[[1]]; k2 <- expanded[[2]]; k3 <- expanded[[3]]
+#     mu1 <- expanded[[4]]; mu2 <- expanded[[5]]
+#     sobol_grid <- sobol_2d_1e4_from_seed_1
+#     par.mat <- rbind(k1,k2,k3,mu1,mu2)
+#     l_const_all <- log_const_vmcos_all(par.mat, sobol_grid, ncores = 1)
+#     if(length(x) != 2) {
+#       x_set <- 1:nrow(x)
+#       par_set <- 1:length(kappa1)
+#       expndn_set <- expand_args(x_set, par_set)
+#       x_set <- expndn_set[[1]]
+#       par_set <- expndn_set[[2]]
+#       as.vector(dcos_manyx_manypar(x[x_set, ], k1[par_set], k2[par_set], k3[par_set], mu1[par_set], mu2[par_set], l_const_all[par_set]))
+#     } else{
+#       as.vector(dcos_onex_manypar(x, k1, k2, k3, mu1, mu2, l_const_all))
+#     }
+#
+#   } else {
+#     sobol_grid <- sobol_2d_1e4_from_seed_1
+#     const.vmcos <- const_vmcos(kappa1, kappa2, kappa3, sobol_grid, ncores = 1)
+#     if(length(x) != 2){
+#       as.vector(dcos_manyx_onepar(x, kappa1, kappa2, kappa3, mu1, mu2, log(const.vmcos)))
+#     } else{
+#       exp(ldcosnum(x[1], x[2], c(kappa1, kappa2, kappa3, mu1, mu2)))/const.vmcos
+#     }
+#   }
+#
+#
+#
+# }
+
 #' The bivariate von Mises cosine model mixtures
 #' @inheritParams rvmsinmix
+#' @inheritParams rvmcos
 #' @param mu1,mu2 vectors of mean parameters.
 #' @param kappa1,kappa2,kappa3 vectors of concentration parameters; \code{kappa1, kappa2 > 0} for each component.
 #'
@@ -170,7 +309,8 @@ dvmcos <- function(x, kappa1=1, kappa2=1, kappa3=0, mu1=0, mu2=0) {
 #'
 #' @export
 
-rvmcosmix <- function(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
+rvmcosmix <- function(n, kappa1, kappa2, kappa3,
+                      mu1, mu2, pmix, method = NULL)
 {
   allpar <- list(kappa1=kappa1, kappa2=kappa2, kappa3=kappa3,
                  mu1=mu1, mu2=mu2, pmix=pmix)
@@ -187,7 +327,7 @@ rvmcosmix <- function(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
     warning("\'pmix\' is rescaled to add up to 1")
   }
 
-  if(any(c(allpar$kappa1, allpar$kappa2) <= 0)) stop("kappa1 and kappa2 must be positive")
+  if(any(c(allpar$kappa1, allpar$kappa2) < 0)) stop("kappa1 and kappa2 must be non-negative")
   if(any(allpar$mu1 < 0 | allpar$mu1 >= 2*pi)) allpar$mu1 <- prncp_reg(allpar$mu1)
   if(any(allpar$mu2 < 0 | allpar$mu2 >= 2*pi)) allpar$mu2 <- prncp_reg(allpar$mu2)
 
@@ -214,7 +354,7 @@ rvmcosmix <- function(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
     n_j <- length(obs_ind_j)
     if(n_j > 0) {
       out[obs_ind_j, ] <- rvmcos(n_j, kappa1[j], kappa2[j],
-                                 kappa3[j], mu1[j], mu2[j])
+                                 kappa3[j], mu1[j], mu2[j], method)
     }
   }
 
@@ -225,7 +365,8 @@ rvmcosmix <- function(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 
 #' @rdname rvmcosmix
 #' @export
-dvmcosmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
+dvmcosmix <- function(x, kappa1, kappa2, kappa3,
+                      mu1, mu2, pmix, log=FALSE, ...)
 {
   allpar <- list("kappa1"=kappa1, "kappa2"=kappa2, "kappa3"=kappa3,
                  "mu1"=mu1, "mu2"=mu2, "pmix"=pmix)
@@ -247,870 +388,43 @@ dvmcosmix <- function(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
   if((length(dim(x)) < 2 && length(x) != 2) || (length(dim(x)) == 2 && tail(dim(x), 1) != 2)
      || (length(dim(x)) > 2)) stop("x must either be a bivariate vector or a two-column matrix")
 
+  ncomp <- length(kappa1)
 
-  par_mat <- rbind(allpar$kappa1, allpar$kappa2, allpar$kappa3, allpar$mu1, allpar$mu2)
-  pi_mix <- allpar$pmix
-  sobol_grid <- sobol_2d_1e4_from_seed_1
-  log_c_von = log_const_vmcos_all(par_mat, sobol_grid, ncores = 1)
+  if (length(x) == 2) x <- matrix(x, nrow=1)
 
-  if(length(x) == 2) {
-    vmcosmix(x[1], x[2], par_mat, pi_mix, log_c_von)
+  allcompden <- vapply(1:ncomp,
+                       function(j) dvmcos(x, kappa1[j], kappa2[j],
+                                          kappa3[j], mu1[j], mu2[j], FALSE, ...),
+                       rep(0, nrow(x)))
+
+  mixden <- c(allcompden %*% pmix)
+
+  if (log) {
+    log(mixden)
   } else {
-    as.vector(vmcosmix_manyx(x, par_mat, pi_mix, log_c_von))
+    mixden
   }
 }
 
 
 #' Fitting bivariate von Mises cosine model mixtures using MCMC
 #' @inheritParams fit_vmsinmix
-#' @param epsilon,L  tuning parameters for HMC; ignored if \code{method = "rwmh"}. \code{epsilon} (step-size) is a quantity in
-#' \eqn{[0, 1)} and \code{L} (leapfrog steps) is a positive integer.
-#' @param gam.loc,gam.scale location and scale (hyper-) parameters for the gamma prior for \code{kappa1} and \code{kappa2}. See
-#' \link{dgamma}. Defaults are \code{gam.loc = 0, gam.scale = 1000} that makes the prior non-informative.
-#'
-#' @return returns an angmcmc object.
 #'
 #' @details
-#' \code{fit_vmcosmix} generates MCMC samples of from vmcos mixture model parameters, and returns an
-#' angmcmc object as the output, which can be used as an argument for diagnostics and estimation
-#' functions.
+#' Wrapper for \link{fit_angmix} with \code{model = "vmcos"}.
 #'
-#' Default \code{method} is \code{"hmc"}.
-#'
-#' If the acceptance rate drops below 5\% after 100 or more HMC iterations, \code{epsilon} is automatically lowered, and the
-#' Markov chain is restarted at the current parameter values.
 #'
 #' @examples
 #' # illustration only - more iterations needed for convergence
 #' fit.vmcos.10 <- fit_vmcosmix(tim8, ncomp = 3, n.iter =  10,
-#'                              ncores = 1)
+#'                              n.chains = 1)
 #' fit.vmcos.10
 #'
 #' @export
 
-fit_vmcosmix <- function(data, ncomp, start_par = list(), method="hmc", epsilon=0.01, L=10, epsilon.random=TRUE,
-                         L.random=FALSE, propscale = rep(0.01, 5), n.iter=500, gam.loc=0, gam.scale=1000, pmix.alpha = 1/2,
-                         norm.var=1000, autotune = FALSE, iter.tune=10, ncores, show.progress = TRUE)
+fit_vmcosmix <- function(...)
 {
-
-  if(is.null(dim(data)) | !(mode(data) %in% c("list", "numeric") && ncol(data) == 2)) stop("non-compatible data")
-
-  curr.model <- "vmcos"
-  data.rad <- rm_NA_rad(data)
-  n.data <- nrow(data.rad)
-  kappa_upper <- 150
-
-  # sobol_grid <- sobol(n = 2e4, dim = 2)
-  sobol_grid <- sobol_2d_1e4_from_seed_1
-
-  if(missing(ncores)) {
-    ncores <- floor(parallel::detectCores())
-  }
-
-  if(ncomp == 1) {
-
-    if(missing(start_par)) {
-      starting <- start_clus_kmeans_vmcos(data.rad, ncomp, nstart=5)
-      starting$par.mat <- matrix(starting$par.mat, ncol=1)
-    } else {
-      allpar <- start_par
-      if(any(is.null(allpar$kappa1), is.null(allpar$kappa2), is.null(allpar$kappa3),
-             is.null(allpar$mu1), is.null(allpar$mu2)) ) {
-        stop("too few elements in start_par, with no default")
-      }
-      allpar1 <- list(allpar$kappa1, allpar$kappa2, allpar$kappa3, allpar$mu1, allpar$mu2)
-      allpar_len <- listLen(allpar1)
-      if(min(allpar_len) != max(allpar_len)){
-        stop("component size mismatch: number of components of the input parameter vectors differ")
-      }
-      starting <- list("par.mat" = rbind(start_par$kappa1, start_par$kappa2, start_par$kappa3,
-                                         start_par$mu1, start_par$mu2), "pi.mix" = 1)
-    }
-  } else if(ncomp > 1) {
-    if(missing(start_par)) {
-      starting <- start_clus_kmeans_vmcos(data.rad, ncomp, nstart=5)
-    } else {
-      allpar <- start_par
-      if(any(is.null(allpar$kappa1), is.null(allpar$kappa2), is.null(allpar$kappa3),
-             is.null(allpar$mu1), is.null(allpar$mu2), is.null(allpar$pmix)) ) {
-        stop("too few elements in start_par, with no default")
-      }
-      allpar1 <- list(allpar$kappa1, allpar$kappa2, allpar$kappa3, allpar$mu1, allpar$mu2, allpar$pmix)
-      allpar_len <- listLen(allpar1)
-      allpar_len <- listLen(allpar)
-      if(min(allpar_len) != max(allpar_len)){
-        stop("component size mismatch: number of components of the input parameter vectors differ")
-      }
-      starting <- list("par.mat" = rbind(start_par$kappa1, start_par$kappa2, start_par$kappa3,
-                                         start_par$mu1, start_par$mu2), "pi.mix" = start_par$pmix)
-    }
-  }
-
-  starting$par.mat[abs(starting$par.mat) >= kappa_upper/2] <- kappa_upper/2
-  # starting$par.mat[starting$par.mat <= -7] <- -7
-  starting$l.c.vmcos <- as.numeric(log_const_vmcos_all(starting$par.mat, sobol_grid, ncores))
-  starting$llik <- llik_vmcos_full(data.rad, starting$par.mat, starting$pi.mix, starting$l.c.vmcos, ncores)
-  starting$lprior <- sum((pmix.alpha-1) * log(starting$pi.mix)) + sum(ldgamanum(starting$par.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((starting$par.mat[3,]/norm.var)^2)
-  starting$lpd <- starting$llik + starting$lprior
-
-  par.mat.all <- array(0, dim = c(5, ncomp, n.iter+1))
-  pi.mix.all <- matrix(1, nrow = ncomp, ncol = n.iter+1)
-  llik.all <- lprior.all <- lpd.all <- 1:(n.iter+1)
-  accpt.par.mat.all <- accpt.kappa.all <- accpt.mu.all <- rep(0, (n.iter+1))
-  modelpar.names <- c("kappa1", "kappa2", "kappa3", "mu1", "mu2")
-
-  MC <- starting  #simulation results list, 1st entry = method of moments on kmeans output
-
-  par.mat.all[,,1] <- MC$par.mat
-  pi.mix.all[,1] <- MC$pi.mix
-  llik.all[1] <- MC$llik
-  lprior.all[1] <- MC$lprior
-  lpd.all[1] <- MC$lpd
-
-  epsilon_ave <- NULL
-  L_ave <- NULL
-  propscale_final <- NULL
-
-  clus.ind <- matrix(1, nrow = n.data, ncol = n.iter+2)
-
-  iter <- 2
-  ntune <- 0
-
-  if(show.progress) pb <- txtProgressBar(min = 2, max = n.iter+1, style = 3)
-
-  #******************************************************************************************
-  # single component model
-  #******************************************************************************************
-
-  if(ncomp == 1 && grepl(method, "hmc")) # using hmc
-  {
-    if(epsilon.random)
-      epsilon_vec <- runif(n.iter, min = 0.9*epsilon, max = 1.1*epsilon)
-    if(L.random)
-      L_vec <- sample(1:L, n.iter, replace = TRUE)
-
-    while(iter <= (n.iter+1)) {
-      broken <- FALSE
-      kappa.large <- FALSE
-
-      pi.mix.1 <- 1
-      par.mat.old <- MC$par.mat
-      l.c.vmcos.old <- MC$l.c.vmcos
-
-      llik_new.pi <- MC$llik
-
-      #----------------------------------------------------------------------------------
-      #generating par.mat by HMC
-      #----------------------------------------------------------------------------------
-
-      par.mat.1 <- par.mat.old
-      lprior.1 <- MC$lprior
-      llik.1 <- llik_new.pi
-      lpd.1 <- llik.1 + lprior.1
-      l.c.vmcos.1 <- MC$l.c.vmcos
-      accpt.par.mat <- 0
-
-
-      current_q <- par.mat.1
-      current_p <- matrix(rnorm(5*ncomp,0,1), nrow = 5)  # independent standard normal variates
-      p <- current_p
-      q <- current_q
-
-      if(L.random)
-        L <- L_vec[iter-1]
-
-      if(epsilon.random)
-        epsilon <- epsilon_vec[iter-1]
-
-      # Do leapfrog with L and epsilon
-      {
-        # Make a half step for momentum at the beginning
-
-        p <- p - (epsilon/2) * (- grad_vmcos_all_comp(data.rad, q, pi.mix.1, sobol_grid, ncores)
-                                + matrix(c(1/gam.scale + (1- 1/gam.scale)/q[1:2,], q[3,], rep(0,2)), ncol=1)
-        ) # the second term in the bracket arises from prior
-        # Alternate full steps for position and momentum
-
-        for (i in 1:L)
-        {
-          # Make a full step for the position
-
-          q <- q + epsilon * p
-
-          if(all(!is.nan(q)) && any(abs(q[1:3, ]) >= kappa_upper)) {
-            kappa.large <- TRUE
-            break
-          }
-
-          if(any(is.nan(c(q,p))))  {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          }
-
-          # Make sure the components of q1 are in the proper ranges
-          {
-            q1 <- q; p1 <- p
-
-            for(j in 1:ncomp) {
-
-              while(q1[1,j] <= 0) {
-                q1[1,j] <- -q1[1,j]; p1[1,j] <- -p1[1,j]
-              }
-
-              while(q1[2,j] <= 0) {
-                q1[2,j] <- -q1[2,j]; p1[2,j] <- -p1[2,j]
-              }
-
-              # q3 is unbounded in vmcos
-
-              while(q1[4,j] < 0 || q1[4,j] >= 2*pi) {
-                if(q1[4,j] < 0) {
-                  q1[4,j] <- - q1[4,j]; p1[4,j] <- -p1[4,j]
-                } else {
-                  q1[4,j] <- 4*pi - q1[4,j]; p1[4,j] <- -p1[4,j]
-                }
-              }
-              while(q1[5,j] < 0 || q1[5,j] >= 2*pi) {
-                if(q1[5,j] < 0) {
-                  q1[5,j] <- - q1[5,j]; p1[5,j] <- -p1[5,j]
-                } else {
-                  q1[5,j] <- 4*pi - q1[5,j]; p1[5,j] <- -p1[5,j]
-                }
-              }
-            }
-
-
-            p <- p1; q <- q1
-          }
-          # Make a full step for the momentum, except at end of trajectory
-
-          if(any(is.nan(c(q,p))))  {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          } else if(i!=L)  {
-            p <- p - epsilon * (- grad_vmcos_all_comp(data.rad, q, pi.mix.1, sobol_grid, ncores)
-                                + matrix(c(1/gam.scale + (1- 1/gam.scale)/q[1:2,], q[3,], rep(0,2)), ncol=1 ) ) # the second term in the bracket arises from prior
-          }
-        }
-
-        # Make a half step for momentum at the end.
-        if(all(!broken, !kappa.large)){
-          if(any(is.nan(c(q,p))))  {
-            broken <- TRUE
-          } else {
-            p <- p - (epsilon/2) * (- grad_vmcos_all_comp(data.rad, q, pi.mix.1, sobol_grid, ncores)
-                                    + matrix(c(1/gam.scale + (1- 1/gam.scale)/q[1:2,], q[3,], rep(0,2)), ncol=1 ) ) # the second term in the bracket arises from prior
-
-          }
-        }
-        # Negate momentum at end of trajectory to make the proposal symmetric
-
-        if(any(is.nan(c(q,p))))  {
-          broken <- TRUE
-        } else {
-          p <-  -p
-        }
-      }
-
-      if (iter > 100 && mean(accpt.par.mat.all[1:iter]) < 0.05) {
-        broken <- TRUE
-      }
-
-      if (broken) {
-        print("Acceptance rate too low. Automatically restarting with a smaller \'epsilon\'.")
-        iter <- 2
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-
-
-        par.mat.all[,,iter] <- par.mat.1
-        pi.mix.all[,iter] <- pi.mix.1
-        llik.all[iter] <- llik.1
-        lprior.all[iter] <- lprior.1
-        lpd.all[iter] <- lpd.1
-        accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-        next
-
-      }
-
-      # Evaluate potential and kinetic energies at start and end of trajectory
-
-      current_U <- -lpd.1
-      current_K <- sum(current_p^2) / 2
-
-      if(kappa.large) {
-        proposed_U <- proposed_K <- Inf
-      } else {
-        par.mat.prop <- q
-
-        l.c.vmcos.prop <- log_const_vmcos_all(par.mat.prop, sobol_grid, ncores)
-
-        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
-
-        llik.prop <- llik_vmcos_full(data.rad, q, pi.mix.1, l.c.vmcos.prop, ncores)
-
-        proposed_U <- -(llik.prop + lprior.prop)
-        proposed_K <- sum(p^2) / 2
-      }
-
-      exp(current_U-proposed_U+current_K-proposed_K)
-      # Accept or reject the state at end of trajectory, returning either
-      # the position at the end of the trajectory or the initial position
-
-      if (runif(1) < exp(current_U-proposed_U+current_K-proposed_K))
-      {
-        # return (q)  # accept
-        # accpt = 1
-        par.mat.1 <- signif(par.mat.prop, 8)
-        lprior.1 <- signif(lprior.prop, 8)
-        llik.1 <- signif(llik.prop, 8)
-        lpd.1 <- signif(-proposed_U, 8)
-        accpt.par.mat <- 1
-        l.c.vmcos.1 <- signif(l.c.vmcos.prop, 8)
-      }
-
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.vmcos" = l.c.vmcos.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.par.mat" = accpt.par.mat)
-
-      par.mat.all[,,iter] <- MC$par.mat
-      pi.mix.all[,iter] <- MC$pi.mix
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-      # tuning epsilon with first 20 draws
-      if(autotune && iter == iter.tune && mean(accpt.par.mat.all[2:(iter.tune+1)]) < 0.6) {
-        iter <- 2
-        ntune <- ntune + 1
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter + 1
-
-    }
-  }
-
-  if(ncomp == 1 && grepl(method, "rwmh")) # using rwmh
-  {
-    while(iter <= (n.iter+1)) {
-      pi.mix.1 <- 1
-      par.mat.old <- MC$par.mat
-      l.c.vmcos.old <- MC$l.c.vmcos
-
-      llik_new.pi <- MC$llik
-      #----------------------------------------------------------------------------------
-      #generating presicion parameters
-      #----------------------------------------------------------------------------------
-
-      k1.1.old <- par.mat.old[1, ]
-      k2.1.old <- par.mat.old[2, ]
-      k3.1.old <- par.mat.old[3, ]
-
-      k1.1.prop <- pmax(k1.1.old + rnorm(ncomp,0,propscale[1]), 1e-6)
-      k2.1.prop <- pmax(k2.1.old + rnorm(ncomp,0,propscale[2]), 1e-6)
-      k3.1.prop <- k3.1.old + rnorm(ncomp,0,propscale[3])
-
-      prop.mat <- unname(matrix(c(k1.1.prop,k2.1.prop,k3.1.prop, par.mat.old[4:5, ]),ncol=1))
-      l.c.vmcos.prop <- as.numeric(log_const_vmcos_all(prop.mat, sobol_grid, ncores))
-
-      llik_old <- llik_new.pi
-      llik_prop <- llik_vmcos_full(data.rad, prop.mat, pi.mix.1, l.c.vmcos.prop, ncores)
-
-      lprior_old <- MC$lprior
-      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
-
-      post.omg_old <- llik_old + lprior_old
-      post.omg_prop <- llik_prop + lprior_prop
-
-      if (runif(1) <  exp(post.omg_prop-post.omg_old) ) {
-        k1.1 <- k1.1.prop
-        k2.1 <- k2.1.prop
-        k3.1 <- k3.1.prop
-        accpt.kappa <- 1
-        l.c.vmcos.1 <- signif(l.c.vmcos.prop, 8)
-        llik_new.omg <- signif(llik_prop, 8)
-        lprior.1 <- signif(lprior_prop, 8)
-        par.mat_new.omg <- signif(prop.mat, 8)
-      } else {
-        k1.1 <- k1.1.old
-        k2.1 <- k2.1.old
-        k3.1 <- k3.1.old
-        accpt.kappa <- 0
-        l.c.vmcos.1 <- l.c.vmcos.old
-        llik_new.omg <- llik_old
-        lprior.1 <- lprior_old
-        par.mat_new.omg <- par.mat.old
-      }
-
-
-      #----------------------------------------------------------------------------------
-      #generating mu and nu
-      #----------------------------------------------------------------------------------
-      prop.mu <- prncp_reg(par.mat.old[4, ] + rnorm(ncomp,0,propscale[4]))
-      prop.nu <- prncp_reg(par.mat.old[5, ] + rnorm(ncomp,0,propscale[5]))
-      #----------------------------------------------------------------------------------
-      prop.mat.mean <- matrix(c(par.mat_new.omg[1:3,], prop.mu,prop.nu), ncol=1)
-
-      llik_new.prop <- llik_vmcos_full(data.rad, prop.mat.mean, pi.mix.1, l.c.vmcos.1, ncores)
-
-      if (runif(1) <  exp(llik_new.prop-llik_new.omg) ) {
-        par.mat.1 <- signif(prop.mat.mean, 8)
-        accpt.mu <- 1
-        llik.1 <- signif(llik_new.prop, 8)
-      } else {
-        par.mat.1 <- par.mat_new.omg
-        accpt.mu <- 0
-        llik.1 <- llik_new.omg
-      }
-
-      lpd.1 <- llik.1 + lprior.1
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.vmcos" = l.c.vmcos.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.kappa" = accpt.kappa, "accpt.mu" = accpt.mu)
-
-      par.mat.all[,,iter] <- MC$par.mat
-      pi.mix.all[,iter] <- MC$pi.mix
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.kappa.all[iter] <- accpt.kappa
-      accpt.mu.all[iter] <- accpt.mu
-
-      # tuning propscale with first 20 draws
-      if(autotune && iter == iter.tune && (mean(accpt.kappa.all[2:(iter.tune+1)]) < 0.6 ||
-                                           mean(accpt.mu.all[2:(iter.tune+1)]) < 0.6)) {
-        iter <- 2
-        ntune <- ntune + 1
-        propscale <- propscale/2
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter+1
-
-    }
-  }
-  #******************************************************************************************
-
-  #******************************************************************************************
-  # multiple component model
-  #******************************************************************************************
-
-  if(ncomp > 1 && grepl(method, "hmc")) # using hmc
-  {
-    if(epsilon.random)
-      epsilon_vec <- runif(n.iter, min = 0.9*epsilon, max = 1.1*epsilon)
-    if(L.random)
-      L_vec <- sample(1:L, n.iter, replace = TRUE)
-
-
-    while(iter <= (n.iter+1)) {
-      broken <- FALSE
-      kappa.large <- FALSE
-
-      #----------------------------------------------------------------------------------
-      #generating mixture proportions
-      #----------------------------------------------------------------------------------
-      pi.mix.old <- MC$pi.mix
-      par.mat.old <- MC$par.mat
-      l.c.vmcos.old <- MC$l.c.vmcos
-
-
-      # Gibbs Sampler
-      {
-        post.wt <- mem_p_cos(data.rad, par.mat.old, pi.mix.old, l.c.vmcos.old, ncores)
-        clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
-        n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp)
-        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
-        llik_new.pi <- llik_vmcos_full(data.rad, par.mat.old, pi.mix.1, l.c.vmcos.old, ncores)
-      }
-
-      #----------------------------------------------------------------------------------
-      #generating par.mat by HMC
-      #----------------------------------------------------------------------------------
-
-      par.mat.1 <- par.mat.old
-      lprior.1 <- MC$lprior
-      llik.1 <- llik_new.pi
-      lpd.1 <- llik.1 + lprior.1
-      l.c.vmcos.1 <- MC$l.c.vmcos
-      accpt.par.mat <- 0
-
-
-      current_q <- par.mat.1
-      current_p <- matrix(rnorm(5*ncomp,0,1), nrow = 5)  # independent standard normal variates
-      p <- current_p
-      q <- current_q
-
-      if(L.random)
-        L <- L_vec[iter-1]
-
-      if(epsilon.random)
-        epsilon <- epsilon_vec[iter-1]
-
-      # Do leapfrog with L and epsilon
-      {
-        # Make a half step for momentum at the beginning
-
-        p <- p - (epsilon/2) * (- grad_vmcos_all_comp(data.rad, q, pi.mix.1, sobol_grid, ncores)
-                                + rbind((1/gam.scale + (1- 1/gam.scale)/q[1:2,]), q[3,], matrix(0, nrow = 2, ncol = ncomp)) ) # the second term in the bracket arises from prior
-        # Alternate full steps for position and momentum
-
-        for (i in 1:L)
-        {
-          # Make a full step for the position
-
-          q <- q + epsilon * p
-
-          if(all(!is.nan(q)) && any(abs(q[1:3, ]) >= kappa_upper)) {
-            kappa.large <- TRUE
-            break
-          }
-
-          if(any(is.nan(c(q,p)))) {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          }
-
-          # Make sure the components of q1 are in the proper ranges
-          {
-            q1 <- q; p1 <- p
-
-            for(j in 1:ncomp) {
-
-              while(q1[1,j] <= 0) {
-                q1[1,j] <- -q1[1,j]; p1[1,j] <- -p1[1,j]
-              }
-
-              while(q1[2,j] <= 0) {
-                q1[2,j] <- -q1[2,j]; p1[2,j] <- -p1[2,j]
-              }
-
-              # q3 is unbounded in vmcos
-
-              while(q1[4,j] < 0 || q1[4,j] >= 2*pi) {
-                if(q1[4,j] < 0) {
-                  q1[4,j] <- - q1[4,j]; p1[4,j] <- -p1[4,j]
-                } else {
-                  q1[4,j] <- 4*pi - q1[4,j]; p1[4,j] <- -p1[4,j]
-                }
-              }
-              while(q1[5,j] < 0 || q1[5,j] >= 2*pi) {
-                if(q1[5,j] < 0) {
-                  q1[5,j] <- - q1[5,j]; p1[5,j] <- -p1[5,j]
-                } else {
-                  q1[5,j] <- 4*pi - q1[5,j]; p1[5,j] <- -p1[5,j]
-                }
-              }
-            }
-
-
-            p <- p1; q <- q1
-          }
-          # Make a full step for the momentum, except at end of trajectory
-
-          if(any(is.nan(c(q,p)))) {
-            broken <- TRUE
-            #stop("Algorithm breaks. Try a smaller epsilon.")
-            break
-          } else if(i!=L) {
-            p <- p - epsilon * (- grad_vmcos_all_comp(data.rad, q, pi.mix.1, sobol_grid, ncores)
-                                + rbind((1/gam.scale + (1- 1/gam.scale)/q[1:2,]), q[3,], matrix(0, nrow = 2, ncol = ncomp)) ) # the second term in the bracket arises from prior
-          }
-        }
-
-        # Make a half step for momentum at the end.
-        if (all(!broken, !kappa.large)) {
-          if(any(is.nan(c(q,p)))) {
-            broken <- TRUE
-          } else {
-            p <- p - (epsilon/2) * (- grad_vmcos_all_comp(data.rad, q, pi.mix.1, sobol_grid, ncores)
-                                    + rbind((1/gam.scale + (1- 1/gam.scale)/q[1:2,]), q[3,], matrix(0, nrow = 2, ncol = ncomp)) ) # the second term in the bracket arises from prior
-          }
-        }
-
-        # Negate momentum at end of trajectory to make the proposal symmetric
-
-        if(any(is.nan(c(q,p)))) {
-          broken <- TRUE
-          #stop("Algorithm breaks. Try a smaller epsilon.")
-          #break
-        } else {
-          p <-  -p
-        }
-
-      }
-
-      if (iter > 100 && mean(accpt.par.mat.all[1:iter]) < 0.05) {
-        broken <- TRUE
-      }
-
-      if (broken) {
-        print("Acceptance rate too low. Automatically restarting with a smaller \'epsilon\'.")
-        iter <- 2
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-
-
-        par.mat.all[,,iter] <- par.mat.1
-        pi.mix.all[,iter] <- pi.mix.old
-        llik.all[iter] <- llik.1
-        lprior.all[iter] <- lprior.1
-        lpd.all[iter] <- lpd.1
-        accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-        next
-
-      }
-
-      # Evaluate potential and kinetic energies at start and end of trajectory
-
-      current_U <- -lpd.1
-      current_K <- sum(current_p^2) / 2
-
-      if(kappa.large) {
-        proposed_U <- proposed_K <- Inf
-      } else {
-        par.mat.prop <- q
-        l.c.vmcos.prop <- log_const_vmcos_all(par.mat.prop, sobol_grid, ncores)
-
-        lprior.prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(q[1:2,], gam.loc, gam.scale)) - 0.5*sum((q[3,]/norm.var)^2)
-
-        llik.prop <- llik_vmcos_full(data.rad, q, pi.mix.1, l.c.vmcos.prop, ncores)
-
-        proposed_U <- -(llik.prop + lprior.prop)
-        proposed_K <- sum(p^2) / 2
-
-      }
-      exp(current_U-proposed_U+current_K-proposed_K)
-      # Accept or reject the state at end of trajectory, returning either
-      # the position at the end of the trajectory or the initial position
-
-      if (runif(1) < exp(current_U-proposed_U+current_K-proposed_K))
-      {
-        # return (q)  # accept
-        # accpt = 1
-        par.mat.1 <- signif(par.mat.prop, 8)
-        lprior.1 <- signif(lprior.prop, 8)
-        llik.1 <- signif(llik.prop, 8)
-        lpd.1 <- signif(-proposed_U, 8)
-        accpt.par.mat <- 1
-        l.c.vmcos.1 <- signif(l.c.vmcos.prop, 8)
-      }
-
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.vmcos" = l.c.vmcos.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.par.mat" = accpt.par.mat)
-
-      par.mat.all[,,iter] <- MC$par.mat
-      pi.mix.all[,iter] <- MC$pi.mix
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.par.mat.all[iter] <- accpt.par.mat
-
-
-      # tuning epsilon with first 20 draws
-      if(autotune && iter == iter.tune && mean(accpt.par.mat.all[2:(iter.tune+1)]) < 0.6) {
-        iter <- 2
-        ntune <- ntune + 1
-        if(epsilon.random) {
-          epsilon_vec <- epsilon_vec/2
-        } else {
-          epsilon <- epsilon/2
-        }
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter + 1
-
-    }
-  }
-
-  if(ncomp > 1 && grepl(method, "rwmh")) # using rwmh
-  {
-    while(iter <= (n.iter+1)) {
-      #----------------------------------------------------------------------------------
-      #generating mixture proportions
-      #----------------------------------------------------------------------------------
-      pi.mix.old <- MC$pi.mix
-      par.mat.old <- MC$par.mat
-      l.c.vmcos.old <- MC$l.c.vmcos
-
-
-      # Gibbs Sampler
-      {
-        post.wt <- mem_p_cos(data.rad, par.mat.old, pi.mix.old, l.c.vmcos.old, ncores)
-        clus.ind[ , iter] <- cID(post.wt, ncomp, runif(n.data))
-        n.clus <- tabulate(clus.ind[ , iter], nbins = ncomp)
-        pi.mix.1 <- as.numeric(rdirichlet(1, (pmix.alpha + n.clus))) #new mixture proportions
-        llik_new.pi <- llik_vmcos_full(data.rad, par.mat.old, pi.mix.1, l.c.vmcos.old, ncores)
-      }
-
-
-      #----------------------------------------------------------------------------------
-      #generating presicion parameters
-      #----------------------------------------------------------------------------------
-
-      k1.1.old <- par.mat.old[1, ]
-      k2.1.old <- par.mat.old[2, ]
-      k3.1.old <- par.mat.old[3, ]
-
-      k1.1.prop <- pmax(k1.1.old + rnorm(ncomp,0,propscale[1]), 1e-6)
-      k2.1.prop <- pmax(k2.1.old + rnorm(ncomp,0,propscale[2]), 1e-6)
-      k3.1.prop <- k3.1.old + rnorm(ncomp,0,propscale[3])
-
-      prop.mat <- unname(rbind(k1.1.prop,k2.1.prop,k3.1.prop, par.mat.old[4:5, ]))
-      l.c.vmcos.prop <- as.numeric(log_const_vmcos_all(prop.mat, sobol_grid, ncores))
-
-      llik_old <- llik_new.pi
-      llik_prop <- llik_vmcos_full(data.rad, prop.mat, pi.mix.1, l.c.vmcos.prop, ncores)
-
-      lprior_old <- MC$lprior
-      lprior_prop <- sum((pmix.alpha-1) * log(pi.mix.1)) + sum(ldgamanum(prop.mat[1:2,], gam.loc, gam.scale)) - 0.5*sum((prop.mat[3,]/norm.var)^2)
-
-      post.omg_old <- llik_old + lprior_old
-      post.omg_prop <- llik_prop + lprior_prop
-
-      if (runif(1) <  exp(post.omg_prop-post.omg_old) ) {
-        k1.1 <- k1.1.prop
-        k2.1 <- k2.1.prop
-        k3.1 <- k3.1.prop
-        accpt.kappa <- 1
-        l.c.vmcos.1 <- signif(l.c.vmcos.prop, 8)
-        llik_new.omg <- signif(llik_prop, 8)
-        lprior.1 <- signif(lprior_prop, 8)
-        par.mat_new.omg <- signif(prop.mat, 8)
-      } else {
-        k1.1 <- k1.1.old
-        k2.1 <- k2.1.old
-        k3.1 <- k3.1.old
-        accpt.kappa <- 0
-        l.c.vmcos.1 <- l.c.vmcos.old
-        llik_new.omg <- llik_old
-        lprior.1 <- lprior_old
-        par.mat_new.omg <- par.mat.old
-      }
-
-
-      #----------------------------------------------------------------------------------
-      #generating mu and nu
-      #----------------------------------------------------------------------------------
-      prop.mu <- prncp_reg(par.mat.old[4, ] + rnorm(ncomp,0,propscale[4]))
-      prop.nu <- prncp_reg(par.mat.old[5, ] + rnorm(ncomp,0,propscale[5]))
-      #----------------------------------------------------------------------------------
-      prop.mat.mean <- unname(rbind(par.mat_new.omg[1:3,], prop.mu,prop.nu))
-
-      llik_new.prop <- llik_vmcos_full(data.rad, prop.mat.mean, pi.mix.1, l.c.vmcos.1, ncores)
-
-      if (runif(1) <  exp(llik_new.prop-llik_new.omg) ) {
-        par.mat.1 <- signif(prop.mat.mean, 8)
-        accpt.mu <- 1
-        llik.1 <- signif(llik_new.prop, 8)
-      } else {
-        par.mat.1 <- par.mat_new.omg
-        accpt.mu <- 0
-        llik.1 <- llik_new.omg
-      }
-
-      lpd.1 <- llik.1 + lprior.1
-
-      MC <- list("par.mat" = par.mat.1, "pi.mix" = pi.mix.1,
-                 "l.c.vmcos" = l.c.vmcos.1, "llik" = llik.1, "lprior" = lprior.1, "lpd" = lpd.1,
-                 "accpt.kappa" = accpt.kappa, "accpt.mu" = accpt.mu)
-
-      par.mat.all[,,iter] <- MC$par.mat
-      pi.mix.all[,iter] <- MC$pi.mix
-      llik.all[iter] <- llik.1
-      lprior.all[iter] <- lprior.1
-      lpd.all[iter] <- lpd.1
-      accpt.kappa.all[iter] <- accpt.kappa
-      accpt.mu.all[iter] <- accpt.mu
-
-      # tuning propscale with first 20 draws
-      if(autotune && iter == iter.tune && (mean(accpt.kappa.all[2:(iter.tune+1)]) < 0.6 ||
-                                           mean(accpt.mu.all[2:(iter.tune+1)]) < 0.6)) {
-        iter <- 2
-        ntune <- ntune + 1
-        propscale <- propscale/2
-      }
-
-      if(show.progress && ((iter-1) %% 25 == 0 || iter == n.iter + 1))
-        utils::setTxtProgressBar(pb, iter)
-
-      iter <- iter+1
-
-    }
-  }
-  #******************************************************************************************
-  if(grepl(method, "hmc")) {
-    if(epsilon.random) {
-      epsilon_ave <- mean(epsilon_vec)
-    } else{
-      epsilon_ave <- epsilon
-    }
-    if(L.random) {
-      L_ave <- mean(L_vec)
-    } else{
-      L_ave <- L
-    }
-  }
-
-
-  if(grepl(method, "rwmh")) {
-    propscale_final <- propscale
-  }
-
-  if(show.progress) cat("\n")
-
-  allpar_val <- array(1, dim = c(6, ncomp, n.iter+1))
-  allpar_val[1, , ] <- pi.mix.all
-  allpar_val[2:6, , ] <- par.mat.all
-
-  allpar_name <- c("pmix", modelpar.names)
-  dimnames(allpar_val)[[1]] <- c("pmix", modelpar.names)
-
-  result <- list("par.value" = allpar_val, "par.name" = allpar_name, "llik" = llik.all,
-                 "accpt.modelpar" = accpt.par.mat.all,
-                 "accpt.kappa" = accpt.kappa.all, "accpt.mu" = accpt.mu.all,
-                 "lpd" = lpd.all, "model" = curr.model, "method" = method, "clus.ind" = clus.ind,
-                 "epsilon.random" = epsilon.random, "epsilon" = epsilon_ave,
-                 "L.random" = L.random, "L" = L_ave,  "type" = "bi",
-                 "propscale.final" = propscale_final, "data" = data.rad,
-                 "gam.loc" = gam.loc, "gam.scale" = gam.scale, "pmix.alpha" = pmix.alpha, "norm.var" = norm.var,
-                 "n.data" = n.data, "ncomp" = ncomp, "n.iter" = n.iter)
-  class(result) <- "angmcmc"
-
-  return(result)
-
+  fit_angmix(model="vmcos", ...)
 }
 
 
@@ -1147,14 +461,276 @@ vmcos_var_cor_singlepar_large <- function(kappa1, kappa2, kappa3, N) {
 }
 
 
-vmcos_var_cor_singlepar <- function(kappa1, kappa2, kappa3, N) {
-  if (kappa1 > 150 | kappa2 > 150 | abs(kappa3) > 150) {
-    vmcos_var_cor_singlepar_large(kappa1, kappa2, kappa3, N)
+vmcos_var_cor_singlepar <- function(kappa1, kappa2, kappa3,
+                                    N, qrnd_grid) {
+  if (max(kappa1 > 150, kappa2 > 150, abs(kappa3)) > 150) {
+    vmcos_var_cor_singlepar_large(kappa1, kappa2,
+                                  kappa3, N)
+  } else if(kappa3 < -1 | max(kappa1, kappa2, abs(kappa3)) > 50) {
+    vmcos_var_corr_mc(kappa1, kappa2, kappa3, qrnd_grid)
   } else {
-    sobol_grid <- sobol_2d_1e4_from_seed_1
-    vmcos_var_cor_singlepar_cpp(kappa1, kappa2, kappa3,
-                                sobol_grid, 1)
+    vmcos_var_corr_anltc(kappa1, kappa2, kappa3)
   }
 
 }
 
+
+
+rvmcos_1par <- function(n=1, kappa1, kappa2, kappa3, mu1, mu2, method)
+{
+
+  if (abs(abs(kappa3) - kappa1) < 1e-8 |
+      abs(abs(kappa3) - kappa2) < 1e-8)
+    kappa3 <- kappa3*(1+1e-6)
+
+
+  if (method == "vmprop") {
+    qrnd_grid <- sobol(1e4, 2, FALSE)
+    log_const_vmcos <- log(const_vmcos(kappa1, kappa2, kappa3, qrnd_grid))
+    log_2pi <- log(2*pi)
+
+    unimodal_y <- TRUE
+    phistar <- NULL
+    method <- "vmprop"
+
+
+    # first check if the joint density is bimodal
+    if (kappa3 <  - kappa1*kappa2/(kappa1+kappa2+1e-16)) {
+      # now check if the y marginal is bimodal
+      if (A_bessel(abs(kappa1+kappa3)) >
+          -abs(kappa1+kappa3)*kappa2/(kappa1*kappa3 + 1e-16)) {
+        unimodal_y <- FALSE
+        phistar_eqn <- function(phi) {
+          kappa13 <- sqrt(kappa1^2 + kappa3^2 + 2*kappa1*kappa3*cos(phi))
+          -kappa1*kappa3*A_bessel(kappa13)/kappa13 - kappa2
+        }
+        find_root <- rootSolve::uniroot.all(phistar_eqn, c(0, 2*pi))
+        # if no root found, use the naive two dimensional rejection sampler
+        if (is.null(find_root)) {
+          method <- "naive"
+        } else {
+          phistar <- find_root[1]
+        }
+
+      }
+
+    }
+
+    # browser()
+
+    if (method == "vmprop" & unimodal_y) {
+
+      grid_0_2pi <- seq(0, 2*pi, length.out = 100)
+
+      # do minimax to find optimum kappa and K
+      # don't worry about mu1 mu2 while optimizing!
+      # abs difference between the target log marginal den
+      # and log proposal den
+      obj_kappa_abs <- function(kappa) {
+        obj_kappa_phi <- function(phi) {
+          cos_phi <- cos(phi)
+          kappa13 <- sqrt(kappa1^2 + kappa3^2 + 2*kappa1*kappa3*cos_phi)
+          log_I_k_13 <- log(besselI(kappa13, 0))
+          log_target_marginal <- -log_const_vmcos + log_2pi + log_I_k_13 + kappa2*cos_phi
+          log_proposal <- -log_2pi - log(besselI(kappa, 0)) + kappa*cos_phi
+          abs(log_target_marginal - log_proposal)
+        }
+        optimize(obj_kappa_phi, c(0, 2*pi), maximum=TRUE)$objective
+      }
+
+      # minimize obj_kappa_abs wrt kappa
+      kappa_opt <- optimize(obj_kappa_abs, c(0, max(50, kappa2*2)))$minimum
+
+
+      log_prop_den <- function(kappa, phi) {
+        cos_phi <- cos(phi)
+        -log_2pi - log(besselI(kappa, 0)) +
+          kappa*cos_phi
+      }
+
+      # find max of log_prop_den
+      max_log_prop_den <- max(log_prop_den(kappa_opt, grid_0_2pi))
+      # any point with density < exp(max_log_prop_den)*exp(-10)
+      # are less likely to appear, so make exp(max_log_prop_den)*exp(-10)
+      # as the lower bound for propsal density to avoid instability
+
+
+      # browser()
+
+      # now maximize the log ratio of the two densities
+      # w.r.t phi, given kappa = kappa_opt
+      obj_kappa_phi <- function(kappa, phi) {
+        cos_phi <- cos(phi)
+        kappa13 <- sqrt(kappa1^2 + kappa3^2 + 2*kappa1*kappa3*cos_phi)
+        log_I_k_13 <- log(besselI(kappa13, 0))
+        log_target_marginal <- -log_const_vmcos + log_2pi + log_I_k_13 + kappa2*cos_phi
+        log_proposal <- pmax(-log_2pi - log(besselI(kappa, 0)) +
+                               kappa*cos_phi, max_log_prop_den-10)
+        # log_proposals are >= max_log_prop_den -10 to avoid instability
+        # also, proposal deviates with log density less than this bound are unlikely
+        log_target_marginal - log_proposal
+      }
+
+      # maximize the log-ratio over a grid
+      (logK <- max(obj_kappa_phi(kappa_opt, seq(0, 2*pi, length.out = 200))))
+
+
+      # browser()
+      # cat(exp(-logK))
+      # rcos_unimodal(1, kappa1, kappa2, kappa3, mu1, mu2,
+      #               kappa_opt, log(besselI(kappa_opt, 0, TRUE)) + kappa_opt,
+      #               logK, log_const_vmcos)
+
+      rcos_unimodal(n, kappa1, kappa2, kappa3, mu1, mu2,
+                    kappa_opt, log(BESSI0_C(kappa_opt)), logK,
+                    log_const_vmcos)
+
+    }
+
+    else if (method == "vmprop" & !unimodal_y) {
+
+      # change the modes into [0, 2*pi]
+      mode_1 <- prncp_reg(prncp_reg.minuspi.pi(mu2)+phistar)
+      mode_2 <- prncp_reg(prncp_reg.minuspi.pi(mu2)-phistar)
+      sin_phistar <- sin(phistar)
+      unifpropn <- 1e-10
+      vmpropn <- (1-1e-10)/2
+      grid_0_2pi <- seq(0, 2*pi, length.out = 100)
+
+      # proposal for y marginal = vmpropn-vmpropn-unifpropn mix
+      # of vm(kappa, mu2 +- phistar) and unif(0, 2*pi)
+      # and unif(0, 2*pi) (to avoid overflow of the ratio where
+      # the densities are flat)
+      # do minimax to find optimum kappa and K
+      # abs difference between the target log marginal den
+      # and log proposal den
+      obj_kappa_abs <- function(kappa) {
+        obj_kappa_phi <- function(phi) {
+          cos_phi <- cos(phi-mu2)
+          kappa13 <- sqrt(kappa1^2 + kappa3^2 + 2*kappa1*kappa3*cos_phi)
+          log_I_k_13 <- log(besselI(kappa13, 0))
+          log_target_marginal <- -log_const_vmcos + log_2pi + log_I_k_13 + kappa2*cos_phi
+          log_proposal <-
+            -log_2pi +  log(exp(log(vmpropn) - log(besselI(kappa, 0)) +
+                                  kappa*cos(phi-mode_1) +
+                                  log(1+exp(kappa*(cos(phi-mode_2)
+                                                   - cos(phi-mode_1))))
+            ) + unifpropn) # simplified mixture density
+          abs(log_target_marginal - log_proposal)
+        }
+        max(obj_kappa_phi(grid_0_2pi))
+      }
+
+
+      # minimize obj_kappa_abs wrt kappa
+      (kappa_opt <- optimize(obj_kappa_abs,
+                             c(0, max(kappa1, kappa2,
+                                      abs(kappa3))))$minimum)
+
+
+      log_prop_den <- function(kappa, phi) {
+        -log_2pi +  log(exp(log(vmpropn) - log(besselI(kappa, 0)) +
+                              kappa*cos(phi-mode_1) +
+                              log(1+exp(kappa*(cos(phi-mode_2) - cos(phi-mode_1)))))
+                        + unifpropn)
+      }
+
+
+      # find max of log_prop_den
+      max_log_prop_den <- max(log_prop_den(kappa_opt, grid_0_2pi))
+      # any point with density < exp(max_log_prop_den)*exp(-10)
+      # are less likely to appear, so make exp(max_log_prop_den)*exp(-10)
+      # as the lower bound for propsal density to avoid instability
+
+
+      # now maximize the log ratio of the two densities
+      # w.r.t phi, given kappa = kappa_opt
+      obj_kappa_phi <- function(kappa, phi) {
+        cos_phi <- cos(phi-mu2)
+        kappa13 <- sqrt(kappa1^2 + kappa3^2 + 2*kappa1*kappa3*cos_phi)
+        log_I_k_13 <- log(besselI(kappa13, 0))
+        log_target_marginal <- -log_const_vmcos + log_2pi + log_I_k_13 + kappa2*cos_phi
+        log_proposal <-
+          pmax(-log_2pi +  log(exp(log(vmpropn) - log(besselI(kappa, 0)) +
+                                     kappa*cos(phi-mode_1) +
+                                     log(1+exp(kappa*(cos(phi-mode_2) - cos(phi-mode_1)))))
+                               + unifpropn), max_log_prop_den-10)
+        # log_proposals are >= max_log_prop_den -10 to avoid instability
+        # also, proposal deviates with log density less than this bound are unlikely
+        log_target_marginal - log_proposal
+      }
+
+      # browser()
+      #
+      # target_den <- function(phi) {
+      #   cos_phi <- cos(phi-mu2)
+      #   kappa13 <- sqrt(kappa1^2 + kappa3^2 + 2*kappa1*kappa3*cos_phi)
+      #   log_I_k_13 <- log(besselI(kappa13, 0))
+      #   log_target_marginal <- -log_const_vmcos + log_2pi + log_I_k_13 + kappa2*cos_phi
+      #   exp(log_target_marginal)
+      # }
+      #
+      # prop_den <- function(kappa, phi) {
+      #   cos_phi <- cos(phi)
+      #   log_proposal <-
+      #     pmax(-log_2pi +  log(exp(log(vmpropn) - log(besselI(kappa, 0)) +
+      #                                kappa*cos(phi-mode_1) +
+      #                                log(1+exp(kappa*(cos(phi-mode_2) - cos(phi-mode_1)))))
+      #                          + unifpropn), max_log_prop_den-30)
+      #   exp(log_proposal)
+      # }
+      # #
+      # # integrate(gg, 0, 2*pi)
+      # # integrate(function(x) pp(kappa_opt, x), 0, 2*pi)
+
+      # maximize the log-ratio over a grid
+      (logK <- max(obj_kappa_phi(kappa_opt, seq(0, 2*pi, length.out = 200))))
+
+      exp(logK)
+
+
+      # poin <- seq(0, 2*pi, length.out = 100)
+      # lggp <- log(target_den(poin))
+      # lppp <- log(prop_den(kappa_opt, poin))
+      # # difp <- obj_kappa_phi(kappa_opt, poin)
+      # #
+      # plot(poin, lggp, type="l", ylim=range(lggp, lppp, lggp-lppp))
+      # points(poin, lppp, type="l", col = "blue")
+      # # points(poin, lggp-lppp, type="l")
+      # # points(poin, difp, type="l", col = "red")
+      # abline(v=c(prncp_reg(mu2+phistar), prncp_reg(mu2-phistar)))
+
+
+      rcos_bimodal(n, kappa1, kappa2, kappa3, mu1, mu2,
+                   kappa_opt, log(BESSI0_C(kappa_opt)), logK,
+                   log_const_vmcos, mode_1, mode_2,
+                   vmpropn, unifpropn)
+
+      # rcos_unimodal(n, kappa1, kappa2, kappa3, mu1, mu2,
+      #               kappa_opt, log(BESSI0_C(kappa_opt)), logK,
+      #               log_const_vmcos)
+
+      # rcos_unimodal_R(kappa1, kappa2, kappa3, mu1, mu2,
+      #                 kappa_opt, log(BESSI0_C(kappa_opt)), logK,
+      #                 log_const_vmcos)
+    }
+
+  }
+
+  else if (method == "naive") {
+    opt_obj <- function(k1=1, k2=1, k3=0, mu1=0, mu2=0) {
+      obj <- optim(c(0,0), fn = function(x) -(k1*cos(x[1]-mu1)+k2*cos(x[2]-mu2)+k3*cos(x[1]-x[2]-mu1+mu2)),
+                   gr = function(x)  -c(-k1*sin(x[1]-mu1)-k3*sin(x[1]-x[2]-mu1+mu2),
+                                        -k2*sin(x[2]-mu2)+k3*sin(x[1]-x[2]-mu1+mu2)))
+      -obj$value
+
+    }
+    upper_bd <- opt_obj(kappa1, kappa2, kappa3, mu1, mu2)
+    # qrnd_grid <- sobol(1e4, 2, FALSE)
+    # cat(exp(log(const_vmcos(kappa1, kappa2, kappa3,
+    #                         qrnd_grid))
+    #         - upper_bd)/(4*pi^2))
+    rcos_onepar(n, kappa1, kappa2, kappa3, mu1, mu2, upper_bd)
+  }
+
+}

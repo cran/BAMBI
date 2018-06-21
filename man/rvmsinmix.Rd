@@ -5,9 +5,9 @@
 \alias{dvmsinmix}
 \title{The bivariate von Mises sine model mixtures}
 \usage{
-rvmsinmix(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
+rvmsinmix(n, kappa1, kappa2, kappa3, mu1, mu2, pmix, method = NULL)
 
-dvmsinmix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
+dvmsinmix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix, log = FALSE)
 }
 \arguments{
 \item{n}{number of observations.}
@@ -18,8 +18,12 @@ dvmsinmix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 
 \item{pmix}{vector of mixture proportions.}
 
+\item{method}{Rejection sampling method to be used. Available choices are \code{"naive"} or \code{"vmprop"}. See details.}
+
 \item{x}{matrix of angles (in radians) where the density is to be evaluated, with each row being a
 single bivariate vector of angles.}
+
+\item{log}{logical. Should the log density be returned instead?}
 }
 \value{
 \code{dvmsinmix} computes the density (vector if x is a two column matrix with more than one row)

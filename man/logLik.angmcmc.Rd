@@ -4,19 +4,18 @@
 \alias{logLik.angmcmc}
 \title{Extract Log-Likelihood from angmcmc objects}
 \usage{
-\method{logLik}{angmcmc}(object, fn = mean, burnin = 1/3, thin = 1, ...)
+\method{logLik}{angmcmc}(object, method = 1, fn, ...)
 }
 \arguments{
 \item{object}{angular MCMC object.}
 
-\item{fn}{function to evaluate on MCMC samples to estimate parameters.  Defaults to \code{mean}, which computes the estimated posterior mean. Used for parameter estimation.}
+\item{method}{interger specifying method of estimating the log likelihood. Must be 1 or 2. Defaults to 1. See details.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1). Used for parameter estimation.}
+\item{fn}{function to evaluate on the iteration-wise log-likelihood values obtained during MCMC run if \code{method = 1}; or,
+if \code{method = 2}, function to evaluate on the MCMC samples for parameter estimation (passed to \link{pointest}).
+Defaults to \code{max} if \code{method = 1} and \code{mean} if \code{method = 2}.}
 
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept. Used for parameter estimation.}
-
-\item{...}{some methods for this generic function require additional
-   arguments.}
+\item{...}{additional arguments to be passed to the function.}
 }
 \value{
 Returns an object of class \link{logLik}. This is a number (the estimated log likelihood) with attributes "df"
@@ -26,8 +25,14 @@ Returns an object of class \link{logLik}. This is a number (the estimated log li
 Extract Log-Likelihood from angmcmc objects
 }
 \details{
-In order to estimate the log likelihood for the model, first the parameter vector is estimated using \link{pointest},
-and then log the likelihood is calculated on the basis of the estimated parameter.
+There are two ways to estimate the log likelihood from the model. If \code{method = 1},
+then log likelihood is estimated by applying \code{fn} (defaults to max, if method = 1)
+direclty on the iteration-wise log likelihood values from the MCMC.
+On the other hand, if \code{method == 2}, then  parameter estimates
+are first computed using \code{pointest} with \code{fn}
+(defaults to "MODE", if \code{method == 2}) applied on the MCMC samples,
+and then then log likelihood is evaluated at the parameter estimates.
+
 
 The degrees of the likelihood function is the total number of free parameters estimated in the mixture models,
 which is equal to \eqn{6K - 1} for bivariate models (vmsin, vmcos and wnorm2), or \eqn{3K - 1} for univariate
@@ -36,6 +41,6 @@ models (vm and wnorm), where \eqn{K} denotes the number of components in the mix
 \examples{
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 logLik(fit.vmsin.20)
 }

@@ -5,9 +5,9 @@
 \alias{dvmcosmix}
 \title{The bivariate von Mises cosine model mixtures}
 \usage{
-rvmcosmix(n, kappa1, kappa2, kappa3, mu1, mu2, pmix)
+rvmcosmix(n, kappa1, kappa2, kappa3, mu1, mu2, pmix, method = NULL)
 
-dvmcosmix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
+dvmcosmix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix, log = FALSE, ...)
 }
 \arguments{
 \item{n}{number of observations.}
@@ -18,8 +18,14 @@ dvmcosmix(x, kappa1, kappa2, kappa3, mu1, mu2, pmix)
 
 \item{pmix}{vector of mixture proportions.}
 
+\item{method}{Rejection sampling method to be used. Available choices are \code{"naive"} or \code{"vmprop"}. See details.}
+
 \item{x}{matrix of angles (in radians) where the density is to be evaluated, with each row being a
 single bivariate vector of angles.}
+
+\item{log}{logical. Should the log density be returned instead?}
+
+\item{...}{additional arguments to be passed to dvmcos. See details.}
 }
 \value{
 \code{dvmcosmix} computes the density  and \code{rvmcosmix} generates random deviates from the mixture density.

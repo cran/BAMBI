@@ -14,8 +14,12 @@ arma::vec rowVars(arma::mat mat_in)
 }
 
 
+
+// perm_mat: n.pars x n.comp x n.iter
+// perm.lab: n.iter x n.comp
 // [[Rcpp::export]]
-arma::cube par_mat_permute(arma::cube par_mat, arma::umat perm_lab)
+arma::cube par_mat_permute(arma::cube par_mat,
+                           arma::umat perm_lab)
 {
   int n_iter = par_mat.n_slices, n_row = par_mat.n_rows, n_col = par_mat.n_cols;
   arma::cube result(n_row, n_col, n_iter);
@@ -29,6 +33,26 @@ arma::cube par_mat_permute(arma::cube par_mat, arma::umat perm_lab)
 
   return result;
 }
+
+
+
+// // [[Rcpp::export]]
+// arma::cube comp_ind_permute(arma::cube clus_ind,
+//                            arma::umat perm_lab)
+// {
+//   int n_iter = par_mat.n_slices, n_row = par_mat.n_rows, n_col = par_mat.n_cols;
+//   arma::cube result(n_row, n_col, n_iter);
+//   for(int iter = 0; iter < n_iter; iter++) {
+//     for(int row = 0; row < n_row; row++) {
+//       for(int col = 0; col < n_col; col++) {
+//         result(row, col, iter) = par_mat(row, perm_lab(iter, col) - 1, iter);
+//       }
+//     }
+//   }
+//
+//   return result;
+// }
+
 
 
 // [[Rcpp::export]]

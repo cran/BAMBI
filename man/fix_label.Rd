@@ -4,34 +4,36 @@
 \alias{fix_label}
 \title{Fix label switching in angmcmc objects}
 \usage{
-fix_label(object, burnin = 1/3, thin = 1, method = 1)
+fix_label(object, ...)
 }
 \arguments{
 \item{object}{angular MCMC object.}
 
-\item{burnin}{initial fraction of the MCMC samples to be discarded as burn-in. Must be a value in [0, 1).}
-
-\item{thin}{positive integer. If \code{thin =} \eqn{n}, only every \eqn{n}-th realizations of the Markov chain is kept.}
-
-\item{method}{method to use for fixing label switching. Available choices are 1 for \link{dataBased}
-and 2 for \link{ecr.iterative.1}.}
+\item{...}{arguments other than \code{z, K, complete, mcmc, p}
+and \code{data} passed to \link{label.switching}. See details.}
 }
 \value{
-Returns another \code{angmcmc} object, with the parameter values (after burn-in and thin)
-re-ordered according to the resulting permutation from \link{dataBased} or \link{ecr.iterative.1}.
+Returns a single \code{angmcmc} object or a list of \code{angmcmc} objects (according as whether
+the argument \code{method} is a scalar or vector) with label switchings corrected (after burn-in and thin)
+according to the resulting permutation from \link{label.switching}.
 }
 \description{
 Fix label switching in angmcmc objects
 }
 \details{
-\code{fix_label} is a wrapper for \link{dataBased} or \link{ecr.iterative.1} (depending on
-\code{method}) from the \code{label.switching} package for \code{angmcmc} objects.
+\code{fix_label} is a wrapper for  \link{label.switching} from
+package \code{label.switching} for \code{angmcmc} objects. The arguments
+\code{z, K, complete, mcmc, p} and \code{data} are appropriately filled in
+from \code{object}. The \code{label.switching} argument \code{method} can
+be a scalar or vector; for this wrapper it defaults to \code{"STEPHENS"} if the \code{angmcmc} was
+created with permutation sampling (by setting perm_sampling = TRUE in
+\link{fit_angmix}), and to \code{"DATA-BASED"} otherwise.
 }
 \examples{
 # first fit a vmsin mixture model
 # illustration only - more iterations needed for convergence
 fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-                             ncores = 1)
+                             n.chains = 1)
 # now apply fix_label
 fit.vmsin.20.fix <- fix_label(fit.vmsin.20)
 

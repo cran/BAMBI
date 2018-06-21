@@ -3,16 +3,15 @@
 
 using namespace Rcpp;
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-
-#include "thread_num.h"
+// #ifdef _OPENMP
+// #include <omp.h>
+// #endif
+//
+//
+// #include "thread_num.h"
 #include "bessel.h"
 #include "univmgen.h"
 
-typedef std::vector<arma::mat> stdvec_mat;
 
 
 // [[Rcpp::export]]
@@ -152,12 +151,12 @@ arma::vec univmmix_manyx(arma::vec x, arma::mat par, arma::vec pi, arma::vec log
 
 
 // [[Rcpp::export]]
-arma::mat mem_p_univm(arma::vec data, arma::mat par, arma::vec pi, arma::vec log_c_von, int ncores = 1)
+arma::mat mem_p_univm(arma::vec data, arma::mat par,
+                      arma::vec pi, arma::vec log_c_von)
 {
   int n = data.n_rows, K = par.n_cols, j;
   double row_total;
   arma::mat den(n, K);
-#pragma omp parallel for private(j, row_total) num_threads(ncores)
   for(int i = 0; i < n; i++){
     row_total = 0;
     for(j = 0; j < K; j++){
@@ -172,88 +171,152 @@ arma::mat mem_p_univm(arma::vec data, arma::mat par, arma::vec pi, arma::vec log
 
 }
 
+// // not used
+// // [[Rcpp::export]]
+// double llik_univm_full(arma::vec data, arma::mat par, arma::vec pi,
+//                        arma::vec log_c)
+// {
+//   int n = data.n_rows, K = pi.size(), j;
+//   doubletemp, log_sum = 0.0;
+//   arma::vec log_pi = log(pi);
+//
+//   if(K > 1) {
+//     for(int i = 0; i < n; i++) {
+//       temp = 0;
+//       for(j = 0; j < K; j++)
+//         temp += exp(ldunivmnum(data[i], par.col(j)) - log_c[j] + log_pi[j] );
+//       log_sum += log(maxi(temp, 1e-100));
+//     }
+//   } else {
+//     for(int i = 0; i < n; i++)
+//       log_sum += ldunivmnum(data[i], par);
+//     log_sum -= n*log_c[0];
+//
+//   }
+//   return(log_sum);
+// }
+
 
 // [[Rcpp::export]]
-double llik_univm_full(arma::vec data, arma::mat par, arma::vec pi,
-                       arma::vec log_c, int ncores = 1)
+double llik_univm_one_comp(arma::vec data, arma::vec par_vec,
+                           double log_c)
+{
+
+  int n = data.n_rows;
+  double log_sum = 0.0;
+
+  for(int i = 0; i < n; i++)
+    log_sum += ldunivmnum(data[i], par_vec);
+  log_sum -= n*log_c;
+
+  return (log_sum);
+}
+
+
+// [[Rcpp::export]]
+arma::vec grad_llik_univm_C(arma::vec data, arma::vec par) {
+  int n = data.n_elem;
+  double k = par[0],  mu = par[1]
+  , bes_ratio_1_0_kappa = BESSI1(k)/BESSI0(k);
+
+  arma::vec grad_llik_wo_const = arma::zeros(3);
+  // first 2 entries = grad, last entry = llik
+
+  for(int i = 0; i < n; i++) {
+    double x_mu = data[i] - mu, cos_x_mu = cos(x_mu);
+    grad_llik_wo_const[0] += cos_x_mu; // bes_ratio_1_0_kappa needs to be subtracted
+    grad_llik_wo_const[1] += k*sin(x_mu);
+    grad_llik_wo_const[2] += k*cos_x_mu; // log_const needs to be subtracted
+  }
+
+  // now adjust the constants
+  grad_llik_wo_const[0] -= n*bes_ratio_1_0_kappa;
+  grad_llik_wo_const[2] -= n*log(const_univm(k));
+
+  return(grad_llik_wo_const);
+}
+
+
+
+// [[Rcpp::export]]
+arma::vec llik_univm_contri_C(arma::vec data, arma::mat par, arma::vec pi,
+                              arma::vec log_c)
 {
   int n = data.n_rows, K = pi.size(), j;
-  long double temp, log_sum = 0.0;
+  double temp;
+  arma::vec llik_contri(n);
   arma::vec log_pi = log(pi);
 
   if(K > 1) {
-#pragma omp parallel for reduction(+:log_sum)  private(j, temp) num_threads(ncores)
     for(int i = 0; i < n; i++) {
       temp = 0;
       for(j = 0; j < K; j++)
         temp += exp(ldunivmnum(data[i], par.col(j)) - log_c[j] + log_pi[j] );
-      log_sum += log(maxi(temp, 1e-100));
+      llik_contri[i] = log(maxi(temp, 1e-100));
     }
   } else {
-#pragma omp parallel for reduction(+:log_sum)  num_threads(ncores)
     for(int i = 0; i < n; i++)
-      log_sum += ldunivmnum(data[i], par);
-    log_sum -= n*log_c[0];
+      llik_contri[i] = ldunivmnum(data[i], par) - log_c[0];
 
   }
-  return(log_sum);
+  return(llik_contri);
 }
 
 
-arma::vec grad_log_univm_one_comp_i_unadj(double x, arma::vec par, double bes_ratio_1_0_kappa)
-{
-  double mu = par[1];
-  arma::vec result(2);
-  result[0] = cos(x - mu) - bes_ratio_1_0_kappa;
-  result[1] = sin(x - mu);
-  return (result);
-} // without the multiplier kappa in del_mu
-
-
-
-// [[Rcpp::export]]
-arma::mat grad_univm_all_comp(arma::vec data, arma::mat par_mat, arma::vec pi, int ncores = 1)
-{
-  int n = data.size(), K = pi.size(), j;
-  double denom, temp;
-  arma::mat grad_temp(2, K), grad_sum = arma::zeros(2, K);
-
-  arma::vec bes_1_kappa(K), bes_0_kappa(K), bes_ratio_1_0_kappa(K), log_pi = log(pi);
-
-  for(j = 0; j < K; j++) {
-    bes_0_kappa[j] = BESSI0(par_mat(0, j));
-    bes_1_kappa[j] = BESSI1(par_mat(0, j));
-    bes_ratio_1_0_kappa[j] = bes_1_kappa[j]/bes_0_kappa[j];
-  }
-
-  arma::vec log_univm_const = log(2 * M_PI * bes_0_kappa);
-
-  stdvec_mat grad_sum_part(ncores);
-  for(int g = 0; g < ncores; g++)
-    grad_sum_part[g] = arma::zeros(2, K);
-
-
-#pragma omp parallel for   private(j, denom, temp) num_threads(ncores)
-  for(int i = 0; i < n; i++) {
-    arma::mat grad_temp(2, K);
-    int g = get_thread_num_final();
-    denom = 0;
-    for(j = 0; j < K; j++) {
-      temp = exp(ldunivmnum(data[i], par_mat.col(j)) - log_univm_const[j] + log_pi[j] );
-      denom += temp;
-      grad_temp.col(j) = temp*grad_log_univm_one_comp_i_unadj(data[i], par_mat.col(j), bes_ratio_1_0_kappa[j]);
-    }
-    grad_sum_part[g] += grad_temp/denom;
-  }  // the pi_h term in numerator hasn't been adjusted yet!
-
-  for(int g = 0; g < ncores; g++)
-    grad_sum += grad_sum_part[g];
-
-  arma::mat adj_factor = arma::ones(2, K);
-  adj_factor.row(1) = par_mat.row(0);
-
-  return (grad_sum % adj_factor);
-}
+// // unused
+// arma::vec grad_log_univm_one_comp_i_unadj(double x, arma::vec par, double bes_ratio_1_0_kappa)
+// {
+//   double mu = par[1];
+//   arma::vec result(2);
+//   result[0] = cos(x - mu) - bes_ratio_1_0_kappa;
+//   result[1] = sin(x - mu);
+//   return (result);
+// } // without the multiplier kappa in del_mu
+//
+//
+// // unused
+// // [[Rcpp::export]]
+// arma::mat grad_univm_all_comp(arma::vec data, arma::mat par_mat, arma::vec pi, int ncores = 1)
+// {
+//   int n = data.size(), K = pi.size(), j;
+//   double denom, temp;
+//   arma::mat grad_temp(2, K), grad_sum = arma::zeros(2, K);
+//
+//   arma::vec bes_1_kappa(K), bes_0_kappa(K), bes_ratio_1_0_kappa(K), log_pi = log(pi);
+//
+//   for(j = 0; j < K; j++) {
+//     bes_0_kappa[j] = BESSI0(par_mat(0, j));
+//     bes_1_kappa[j] = BESSI1(par_mat(0, j));
+//     bes_ratio_1_0_kappa[j] = bes_1_kappa[j]/bes_0_kappa[j];
+//   }
+//
+//   arma::vec log_univm_const = log(2 * M_PI * bes_0_kappa);
+//
+//   stdvec_mat grad_sum_part(ncores);
+//   for(int g = 0; g < ncores; g++)
+//     grad_sum_part[g] = arma::zeros(2, K);
+//
+//
+//   for(int i = 0; i < n; i++) {
+//     arma::mat grad_temp(2, K);
+//     int g = get_thread_num_final();
+//     denom = 0;
+//     for(j = 0; j < K; j++) {
+//       temp = exp(ldunivmnum(data[i], par_mat.col(j)) - log_univm_const[j] + log_pi[j] );
+//       denom += temp;
+//       grad_temp.col(j) = temp*grad_log_univm_one_comp_i_unadj(data[i], par_mat.col(j), bes_ratio_1_0_kappa[j]);
+//     }
+//     grad_sum_part[g] += grad_temp/denom;
+//   }  // the pi_h term in numerator hasn't been adjusted yet!
+//
+//   for(int g = 0; g < ncores; g++)
+//     grad_sum += grad_sum_part[g];
+//
+//   arma::mat adj_factor = arma::ones(2, K);
+//   adj_factor.row(1) = par_mat.row(0);
+//
+//   return (grad_sum % adj_factor);
+// }
 
 
 

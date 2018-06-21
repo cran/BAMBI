@@ -1,4 +1,4 @@
-start_par_uniwnorm <- function(data.sub) {
+start_par_wnorm <- function(data.sub) {
   x1 <- prncp_reg(data.sub)
 
   Sbar <- mean(sin(x1))
@@ -9,12 +9,12 @@ start_par_uniwnorm <- function(data.sub) {
   c(1/(1-Rbar), muhat)
 }  #starting parameters from  a dataset
 
-start_clus_kmeans_uniwnorm <- function(data.full, comp = 2, nstart = 5){
+start_clus_kmeans_wnorm <- function(data.full, comp = 2, nstart = 5){
   data.full.cart <- t(sapply(data.full, function(x) c(cos(x), sin(x))))
   data.kmean <- kmeans(data.full.cart, centers = comp, nstart = nstart)
   ids <- data.kmean$cluster
   clust.ind <- lapply(1:comp, function(i) which(ids == i))
-  par <- sapply(1:length(clust.ind), function(m) start_par_uniwnorm(data.full[clust.ind[[m]]]))
+  par <- sapply(1:length(clust.ind), function(m) start_par_wnorm(data.full[clust.ind[[m]]]))
   pi.mix <- listLen(clust.ind)/length(unlist(clust.ind))
   order.conc <- order(colSums(par^2))
   list("par.mat" = par[,order.conc], "pi.mix" = pi.mix[order.conc], "clust.ind" = clust.ind[order.conc], "id" = ids)
@@ -22,13 +22,13 @@ start_clus_kmeans_uniwnorm <- function(data.full, comp = 2, nstart = 5){
 
 
 
-start_clus_rand_uniwnorm <- function(data.full, comp = 2){
+start_clus_rand_wnorm <- function(data.full, comp = 2){
   rand.pi  <- runif(comp, 1/(2*comp), 2/comp)
   rand.pi <- rand.pi/sum(rand.pi)
   rand.multinom <- t(rmultinom(length(data.full), 1, rand.pi))
   ids <- apply(rand.multinom, 1, which.max)
   clust.ind <- lapply(1:comp, function(i) which(ids == i))
-  par <- sapply(1:length(clust.ind), function(m) start_par_uniwnorm(data.full[clust.ind[[m]]]))
+  par <- sapply(1:length(clust.ind), function(m) start_par_wnorm(data.full[clust.ind[[m]]]))
   pi.mix <- listLen(clust.ind)/length(unlist(clust.ind))
   order.conc <- order(colSums(par^2))
   list("par.mat" = par[,order.conc], "pi.mix" = pi.mix[order.conc], "clust.ind" = clust.ind[order.conc], "id" = ids)
@@ -55,7 +55,7 @@ start_clus_kmeans_wnorm2 <- function(data.full, comp = 2, nstart = 5){
 }  #kmeans, then start_par for each cluster
 
 
-start_clus_rand_wnorm2 <- function(data.full, comp = 2){
+start_clus_rand_wnorm2 <- function(data.full, comp = 2, nstart = 5){
   rand.pi  <- runif(comp, 1/(2*comp), 2/comp)
   rand.pi <- rand.pi/sum(rand.pi)
   rand.multinom <- t(rmultinom(nrow(data.full), 1, rand.pi))

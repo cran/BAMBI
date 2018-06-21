@@ -7,8 +7,7 @@
 bestmodel(step_object)
 }
 \arguments{
-\item{step_object}{stepwise fitted object (output of \code{\link{fit_stepwise_univariate}}
-or \code{\link{fit_stepwise_bivariate}}).}
+\item{step_object}{stepwise fitted object obtained from \link{fit_incremental_angmix}.}
 }
 \value{
 Returns an angmcmc object corresponding to the the best fitted model in step_object.
@@ -18,9 +17,10 @@ Extracting angmcmc object corresponding to the best fitted model in stepwise fit
 }
 \examples{
 # illustration only - more iterations needed for convergence
-fit.vmsin.step.15 <- fit_stepwise_bivariate(tim8, "vmsin", start_ncomp = 3,
-                                            max_ncomp = 5, n.iter = 15,
-                                            ncores = 1)
+set.seed(1)
+fit.vmsin.step.15 <- fit_incremental_angmix("vmsin", tim8, start_ncomp = 1,
+                                            max_ncomp = 3, n.iter = 15,
+                                            n.chains = 1)
 fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15)
 fit.vmsin.best.15
 
