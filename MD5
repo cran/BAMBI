@@ -1,5 +1,5 @@
-4d292e5097d3470ca0a1c33999699efd *DESCRIPTION
-8bea34707b65288e1335d780ae942108 *NAMESPACE
+5cce249601b2153863c7691cc4165d04 *DESCRIPTION
+2e5b63b31a9679abb17404296e5f1d90 *NAMESPACE
 18fbc95f4a1447a6f68e219044f5b037 *R/BAMBI.R
 8fe069750a9c301f0ebdf67ab9caae36 *R/RcppExports.R
 491e043545d8888056e20252fb60a82e *R/all_diagnostics.R
@@ -16,7 +16,7 @@ f70d09489f998bf5de6991fce7690c2e *R/bounded_hmc_biv.R
 171d67550ebffbc2e70e64a26e72b2b4 *R/bounded_rmwh_biv.R
 0864bf0d885c4390196fbbb546d7952d *R/circ_cor.R
 9cc9b8750cfae8f23be8bbaca5bb69c8 *R/data.R
-03f829f9aabac265c5ac9349b09d6bea *R/fit_mixmodel.R
+219fbb4fb7e4b317006c11eab80b0590 *R/fit_mixmodel.R
 b99fc85e69e100decef0e104f20e83f7 *R/process_startpar.R
 62dda7e4c3a763f1b5fa95cbc428c187 *R/vmstart.R
 b0793a4351800b36841bf9079757d572 *R/wnormstart.R
@@ -36,7 +36,7 @@ bca492b6087907d406afa5b402fdfdef *data/wind.rda
 e0d79562b15f6f9ea6b5ea3c3f82c30e *man/d_fitted.Rd
 3c7a152005bffcef81e7bd023273752d *man/densityplot.angmcmc.Rd
 451b3fa942c0358ec627a13d6de00534 *man/extractsamples.Rd
-c253465676e83685134b841ae2d0b034 *man/fit_angmix.Rd
+c0605b4f8f8485db311883dace69351a *man/fit_angmix.Rd
 ebbea8d761bfcd407717de4c235bc221 *man/fit_incremental_angmix.Rd
 a6cdbfd0f0443597702014bad9218d30 *man/fit_vmcosmix.Rd
 d25ffbe7637ec586532084be225382db *man/fit_vmmix.Rd

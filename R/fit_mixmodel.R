@@ -34,6 +34,7 @@ find_lscale_mat_uni <- function(x) {
 #' Fitting Bivariate and univariate angular mixture models
 #'
 #' @importFrom gtools rdirichlet
+#' @importFrom future.apply future_lapply
 #'
 #' @param model angular model whose mixtures are to be fitted. Available choices are \code{"vmsin", "vmcos"} and \code{"wnorm2"} for
 #' bivariate data, and \code{"vm"} and \code{"wnorm"} for univariate data.
@@ -58,7 +59,7 @@ find_lscale_mat_uni <- function(x) {
 #' @param chains_parallel logical. Should the chains be run in parallel? Defaluts to TRUE, and ignored if \code{n.chains} = 1.
 #' Note that parallelization is implemented via \link{future_lapply} from package \code{future.apply} which
 #' uses futures for this purpose, and thus provides a convenient way of parallelization across various OSs and computing environments.
-#' However, a proper \link{plan} must be set for the parallization before running the chain. Otherwise the chains will run sequentially.
+#' However, a proper \link[future]{plan} must be set for the parallization before running the chain. Otherwise the chains will run sequentially.
 #' @param method MCMC strategy to be used for the model paramters:  \code{"hmc"} or \code{"rwmh"}.
 #' @param perm_sampling logical. Should the permutation sampling algorithm of Fruhwirth-Schnatter (2001) be used?
 #' If TRUE, at every iteration after burnin, once model parameters and mixing proportions are sampled,
@@ -577,7 +578,7 @@ fit_angmix <- function(model = "vmsin",
           llik_vmsin_one_comp(data[obs_group, , drop=FALSE], par_vec,
                               log(const_vmsin(par_vec[1],
                                               par_vec[2], par_vec[3]))) +
-           0.5*sum(-par_vec_lscale[1:3]^2/norm.var)
+          0.5*sum(-par_vec_lscale[1:3]^2/norm.var)
       } else{
         # only prior
         res <-
@@ -1256,9 +1257,9 @@ fit_angmix <- function(model = "vmsin",
 
 
     if (type == "bi") {
-    par.mat_lscale <- find_lscale_mat(par.mat)
-    par_lower_lscale <- find_lscale_mat(par_lower)
-    par_upper_lscale <- find_lscale_mat(par_upper)
+      par.mat_lscale <- find_lscale_mat(par.mat)
+      par_lower_lscale <- find_lscale_mat(par_lower)
+      par_upper_lscale <- find_lscale_mat(par_upper)
     } else {
       par.mat_lscale <- find_lscale_mat_uni(par.mat)
       par_lower_lscale <- find_lscale_mat_uni(par_lower)
@@ -1684,10 +1685,10 @@ fit_angmix <- function(model = "vmsin",
   # generate three chains in parallel, if possible
   if (chains_parallel) {
 
-    res_list <- future.apply::future_lapply(1:n.chains,
-                                            function(ii) run_MC(starting[[ii]],
-                                                                L[ii], ii),
-                                            future.seed = TRUE)
+    res_list <- future_lapply(1:n.chains,
+                              function(ii) run_MC(starting[[ii]],
+                                                  L[ii], ii),
+                              future.seed = TRUE)
   } else {
     res_list <- lapply(1:n.chains,
                        function(ii) run_MC(starting[[ii]], L[ii], ii))
