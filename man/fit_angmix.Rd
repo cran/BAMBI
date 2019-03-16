@@ -14,7 +14,7 @@ fit_angmix(model = "vmsin", data, ncomp, cov.restrict = "NONE",
   show.progress = TRUE, accpt.prob.upper, accpt.prob.lower,
   epsilon.incr = 0.05, L.incr = 0.075, tune.incr = 0.05,
   tune_ave_size = 100, kappa_upper = 150, kappa_lower = 1e-04,
-  return_tune_param = FALSE, qrnd_grid = NULL, n_qrnd = NULL, ...)
+  return_tune_param = FALSE, qrnd = NULL, n_qrnd = NULL, ...)
 }
 \arguments{
 \item{model}{angular model whose mixtures are to be fitted. Available choices are \code{"vmsin", "vmcos"} and \code{"wnorm2"} for
@@ -141,7 +141,7 @@ Warning: values much larger or smaller than the default are not recommended as t
 
 \item{return_tune_param}{logical. Should the values of the tuning parameters used at each iteration in each chain be returned? Defaults to \code{FALSE}.}
 
-\item{qrnd_grid, n_qrnd}{Used only if \code{method="vmcos"}. See \link{dvmcos} for details.}
+\item{qrnd, n_qrnd}{Used only if \code{method="vmcos"}. See \link{dvmcos} for details.}
 
 \item{...}{Unused.}
 }
@@ -155,14 +155,19 @@ Sampling is done in log scale for the concentration parameters (kappa, kappa1 an
 Parallelization is done by default when more than one chain is used,
 but the chains can be run sequentially as well by setting
 \code{chains_parallel = FALSE}. To retain reproducibility while running
-multiple chains in parallel, the same RNG state is passed to each chain
-(then the state is changed across chains so that no two chains can become
-identical, even if they have the same starting and tuning parameters). This,
-however creates a difference between a  \code{fit_angmix} call with multiple
-chains, one run sequentially by setting \code{chains_parallel = FALSE}, and
-another run sequentially due to a sequential \code{plan()} (or no \code{plan()})
-used before the \code{fit_angmix} call, with \code{chains_parallel = TRUE}.
-In the former, different RNG states are passed at the initiation of each chain.
+multiple chains in parallel, the same RNG state is passed at the
+beginning of each chain. This is done by specifying \code{future.seed = TRUE}
+in \code{future.apply::future_lapply} call. Then at the beginning of the i-th
+chain, before drawing any parameters, i-many Uniform(0, 1) random numbers are
+generated using \code{runif(i)} (and then thrown away). This ensures that the
+RNG states across chains prior to random generation of the parameters are
+different, and hence, no two chains can become identical, even if they have
+the same starting and tuning parameters. This, however creates a difference
+between a \code{fit_angmix} call with multiple chains which is run sequentially
+by setting \code{chains_parallel = FALSE}, and another which is run sequentially
+because of a sequential \code{plan()} (or no \code{plan()}), with
+\code{chains_parallel = TRUE}. In the former, different RNG states are passed at
+the initiation of each chain.
 }
 \examples{
 # illustration only - more iterations needed for convergence
@@ -171,9 +176,9 @@ fit.vmsin.20 <- fit_angmix("vmsin", tim8, ncomp = 3, n.iter =  20,
 fit.vmsin.20
 
 
-# Parallelization is implemented via \\link{future_lapply} from the
+# Parallelization is implemented via future_lapply from the
 # package future.apply. To parallelize, first provide a parallel
-# plan() for futures. Otherwise the chains will run sequentially.
+# plan(); otherwise the chains will run sequentially.
 # Note that not all plan() might work on every OS, as they execute
 # functions defined internally in fit_mixmodel. We suggest
 # plan(multiprocess).

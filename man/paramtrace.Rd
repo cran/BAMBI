@@ -4,7 +4,7 @@
 \alias{paramtrace}
 \title{Trace plot for parameters from an angmcmc object}
 \usage{
-paramtrace(object, par.name, comp.label, chain.no, press.enter = TRUE, ...)
+paramtrace(object, par.name, comp.label, chain.no, ...)
 }
 \arguments{
 \item{object}{angular MCMC object.}
@@ -16,10 +16,6 @@ If \code{NULL}, results for all components are provided.}
 
 \item{chain.no}{vector of chain numbers whose samples are to be be used.
 in the estimation. By default all chains are used.}
-
-\item{press.enter}{logical. Should the next plot in the series
-be shown after you press "Enter"? Ignored if only a single plot
-is to be created.}
 
 \item{...}{unused}
 
@@ -40,8 +36,8 @@ fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
 # trace plot for kappa1 in component 1
 paramtrace(fit.vmsin.20, "kappa1", 1)
 # for kappa1 in all components
-paramtrace(fit.vmsin.20, "kappa1", press.enter = FALSE)
+paramtrace(fit.vmsin.20, "kappa1")
 # for all parameters in component 1
-paramtrace(fit.vmsin.20, comp.label = 1, press.enter = FALSE)
+paramtrace(fit.vmsin.20, comp.label = 1)
 
 }

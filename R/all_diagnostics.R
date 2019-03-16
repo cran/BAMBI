@@ -3,7 +3,9 @@
 #' @inheritParams pointest
 #' @param x angular MCMC object (with bivariate data).
 #' @param show.data logical. Should the data points be added to the contour plot? Ignored if \code{object} is NOT supplied.
-#' @param cex,col graphical parameters passed to \code{\link{points}} in graphics for plotting the data points.
+#' @param cex,col,pch graphical parameters passed to \code{\link{points}} from graphics for plotting the data points.
+#' Ignored if {show.data == FALSE}.
+#' @param alpha color transparency for the data points, implemented via \code{\link[scales]{alpha}} from package \code{scales}.
 #' Ignored if {show.data == FALSE}.
 #' @inheritParams contour_model
 #' @param ... additional arguments to be passed to the function \code{\link{contour}}.
@@ -25,11 +27,12 @@
 #'
 #' @export
 
-contour.angmcmc <-  function(x, fn = mean, show.data = TRUE,
+contour.angmcmc <-  function(x, fn = "MAP", show.data = TRUE,
                              xpoints = seq(0, 2*pi, length.out = 100),
                              ypoints = seq(0, 2*pi, length.out = 100),
                              levels, nlevels = 20,
-                             cex = 1, col = "red", ...)
+                             cex = 1, col = "red", alpha = 0.4,
+                             pch = 19, ...)
 {
   object <- x
 
@@ -59,9 +62,11 @@ contour.angmcmc <-  function(x, fn = mean, show.data = TRUE,
 
   coords <- as.matrix(expand.grid(xpoints, ypoints))
   dens <- d_fitted(coords, x, fn = fn)
-  contour(xpoints, ypoints, matrix(dens, nrow=length(xpoints)), levels=levels)
+  contour(xpoints, ypoints, matrix(dens, nrow=length(xpoints)),
+          levels=levels)
 
-  if(show.data) points(x$data, col = col, cex = cex)
+  if(show.data) points(x$data, col = scales::alpha(col, alpha),
+                       cex = cex, pch = pch)
 
   title(main = main, xlab = xlab, ylab = ylab)
 }
@@ -75,27 +80,25 @@ contour.angmcmc <-  function(x, fn = mean, show.data = TRUE,
 
 
 #' Density plots for angmcmc objects
-#'
 #' @description Plot fitted angular mixture model density surfaces or curves.
 #' @inheritParams pointest
 #' @param x angmcmc object.
 #' @param plot logical. Should the density surface (if the fitted data is bivariate) or the density
 #' curve (if univariate) be plotted?
 #' @param log.density logical. Should log density be used for the plot?
-#' @param ... additional arguments passed to \code{\link{persp}}, if
+#' @param ... additional arguments passed to \code{lattice::wireframe} if
 #' fitted data is bivariate, or to \link{hist} (if (\code{show.hist == TRUE})), if the fitted data is univariate
 #' @param show.hist logical. Should a histogram for the data
 #' points be added to the plot, if the fitted data is univariate? Ignored if data is
 #' bivariate.
-#' @param theta,phi,shade,expand,xlab,ylab,zlab,main grahpical parameters passed to \link{persp} (if
-#' bivariate) or \link{plot} (if univariate). If the data is univariate,
-#' \code{theta, phi, shade, expand} are ignored, and \code{zlab} plays the role of
-#' \code{ylab}.
+#' @param xlab,ylab,zlab,main grahpical parameters passed to \code{lattice::wireframe} (if
+#' bivariate) or \link{plot} (if univariate). If the data is univariate, \code{zlab} and \code{ylab} can be
+#' used interchangeably (both correspond to the density).
 #' @param xpoints,ypoints Points on the  x and y coordinates (if bivariate) or only x coordinate
 #' (if univariate) where the density is to be evaluated. Each defaults to seq(0, 2*pi, length.out=100).
 #'
 #' @details
-#' When \code{plot==TRUE}, \code{densityplot.angmcmc} calls \link{persp} or
+#' When \code{plot==TRUE}, \code{densityplot.angmcmc} calls \code{lattice::wireframe} or
 #' \link{plot} from graphics to draw the surface or curve.
 #'
 #' To estimate the mixture density, first the parameter vector \eqn{\eta} is estimated
@@ -118,9 +121,14 @@ contour.angmcmc <-  function(x, fn = mean, show.data = TRUE,
 #' # now create density surface with the default first 1/3 as burn-in and thin = 1
 #' library(lattice)
 #' densityplot(fit.vmsin.20)
-#' # the viewing angles can be changed through the arguments theta and phi
-#' # (passed to persp from graphics)
-#' densityplot(fit.vmsin.20, theta = 45, phi = 45)
+#' # the viewing angles can be changed through the argument 'screen'
+#' # (passed to lattice::wireframe)
+#' densityplot(fit.vmsin.20, screen = list(z=-30, x=-60))
+#' densityplot(fit.vmsin.20, screen = list(z=30, x=-60))
+#' # the colors can be changed through 'col.regions'
+#' cols <- grDevices::colorRampPalette(c("blue", "green",
+#'                                       "yellow", "orange", "red"))(100)
+#' densityplot(fit.vmsin.20, col.regions = cols)
 #'
 #' # Now fit a vm mixture model
 #' # illustration only - more iterations needed for convergence
@@ -128,7 +136,7 @@ contour.angmcmc <-  function(x, fn = mean, show.data = TRUE,
 #'                              n.chains = 1)
 #' densityplot(fit.vm.20)
 #'
-#' @importFrom lattice densityplot
+#' @importFrom lattice densityplot wireframe
 #'
 #' @export
 
@@ -137,8 +145,7 @@ densityplot.angmcmc <- function(x, fn = mean, log.density = FALSE,
                                 ypoints=seq(0, 2*pi, length.out=35),
                                 plot=TRUE,
                                 show.hist=ifelse(log.density, FALSE, TRUE),
-                                theta = 30, phi = 30, shade = 0.01,
-                                expand = 0.5, xlab, ylab,
+                                xlab, ylab,
                                 zlab = ifelse(log.density, "Log Density", "Density"),
                                 main,
                                 ...)
@@ -193,22 +200,28 @@ densityplot.angmcmc <- function(x, fn = mean, log.density = FALSE,
         main <- paste("Density surface for fitted (single component)", object$model)
       }
 
-      # Create a function interpolating colors in the range of specified colors
-      jet.colors <- grDevices::colorRampPalette( c("blue", "green",
-                                                   "yellow", "orange", "red") )
-      # Generate the desired number of colors from this palette
-      nbcol <- 500
-      color <- jet.colors(nbcol)
+      # # Create a function interpolating colors in the range of specified colors
+      # jet.colors <- grDevices::colorRampPalette( c("blue", "green",
+      #                                              "yellow", "orange", "red") )
+      # # Generate the desired number of colors from this palette
+      # nbcol <- 500
+      # color <- jet.colors(nbcol)
 
-      denfacet <- denmat[-1, -1] + denmat[-1, -ncden] +
-        denmat[-nrden, -1] + denmat[-nrden, -ncden]
+      # denfacet <- denmat[-1, -1] + denmat[-1, -ncden] +
+      #   denmat[-nrden, -1] + denmat[-nrden, -ncden]
       # Recode facet z-values into color indices
-      facetcol <- cut(denfacet, nbcol)
+      # facetcol <- cut(denfacet, nbcol)
 
-      persp(x=xpoints, y=ypoints, z=denmat, theta = theta, phi = phi, expand = expand, col = color[facetcol],
-            ltheta = 120, shade = shade, ticktype = "detailed",
-            xlab = xlab, ylab = ylab, zlab = zlab,
-            main = main, ...) -> res
+      print(basic_surfaceplot(xpoints = xpoints, ypoints = ypoints,
+                        denmat = denmat, xlab = xlab, ylab = ylab,
+                        main = main, zlab = zlab, ...))
+
+      # persp(x=xpoints, y=ypoints, z=denmat, theta = theta, phi = phi, expand = expand, col = color[facetcol],
+      #       ltheta = 120, shade = shade, ticktype = "detailed",
+      #       xlab = xlab, ylab = ylab, zlab = zlab,
+      #       main = main, ...) -> res
+
+
 
       # inargs <- list(...)
       # inargs$x <- denmat~x*y
@@ -271,9 +284,13 @@ densityplot.angmcmc <- function(x, fn = mean, log.density = FALSE,
       if (missing(xlab))
         xlab <- "Angles in radian"
 
+      if (missing(ylab)) {
+        ylab <- zlab
+      }
+
       y_max <- 1.1* max(den, histplot$density)
       plot(NULL, xlim=range(xpoints), ylim=c(0, y_max), xlab = xlab,
-           ylab=zlab, main=main)
+           ylab=ylab, main=main)
       points(xpoints, den, type = "l")
 
       if(show.hist) plot(histplot, freq = FALSE, add = TRUE, ...)
@@ -291,9 +308,9 @@ densityplot.angmcmc <- function(x, fn = mean, log.density = FALSE,
 #' @inheritParams pointest
 #' @param object angular MCMC object.
 #' @param par parameter for which trace plot is to be created.
-#' @param press.enter logical. Should the next plot in the series
-#' be shown after you press "Enter"? Ignored if only a single plot
-#' is to be created.
+# #' @param press.enter logical. Should the next plot in the series
+# #' be shown after you press "Enter"? Ignored if only a single plot
+# #' is to be created.
 #' @param ... unused
 #' @return
 #' Returns a single plot if a single \code{par} and a single \code{comp.label} is supplied.
@@ -307,25 +324,27 @@ densityplot.angmcmc <- function(x, fn = mean, log.density = FALSE,
 #' # trace plot for kappa1 in component 1
 #' paramtrace(fit.vmsin.20, "kappa1", 1)
 #' # for kappa1 in all components
-#' paramtrace(fit.vmsin.20, "kappa1", press.enter = FALSE)
+#' paramtrace(fit.vmsin.20, "kappa1")
 #' # for all parameters in component 1
-#' paramtrace(fit.vmsin.20, comp.label = 1, press.enter = FALSE)
+#' paramtrace(fit.vmsin.20, comp.label = 1)
 #'
 #' @importFrom RColorBrewer brewer.pal
 #'
 #' @export
 
 paramtrace <- function(object, par.name, comp.label, chain.no,
-                       press.enter = TRUE, ...)
+                       ...)
 {
   if(!class(object) %in% "angmcmc") stop("\'object\' must be an angmcmc object")
 
   ell <- list(...)
 
+  if (!is.null(ell$press.enter))
+    warning("\'press.enter\' is deprecated. Instead use par(ask=TRUE) before calling paramtrace.")
   if (!is.null(ell$burnin))
-    warning("Use of burnin is depriciated in postprocessing. Use \'burnin.prop\' during original MCMC run instead.")
+    warning("Use of burnin is deprecated in postprocessing. Use \'burnin.prop\' during original MCMC run instead.")
   if (!is.null(ell$thin))
-    warning("Use of thin is depriciated in postprocessing. Use \'thin\' during original MCMC run instead.")
+    warning("Use of thin is deprecated in postprocessing. Use \'thin\' during original MCMC run instead.")
 
   if (missing(par.name)) {
     par.name <- object$par.name
@@ -393,12 +412,15 @@ paramtrace <- function(object, par.name, comp.label, chain.no,
         }
 
         title(main = main, ylab = ylab)
-        if(currplotno < nplots) {
-          if(press.enter) {
-            press_enter()
-            frame()
-          }
-        }
+
+        # --not required--
+        # if(currplotno < nplots) {
+        #   if(press.enter) {
+        #     press_enter()
+        #     frame()
+        #   }
+        # }
+
         currplotno <- currplotno + 1
       }
     }
@@ -427,17 +449,20 @@ paramtrace <- function(object, par.name, comp.label, chain.no,
 #' @export
 
 lpdtrace <- function(object, chain.no, use.llik = FALSE,
-                     plot.autocor = FALSE, press.enter = TRUE,
+                     plot.autocor = FALSE,
+                     # press.enter = TRUE,
                      lag.max = NULL, ...)
 {
   if(class(object) != "angmcmc") stop("lpdtrace can only be used for \'angmcmc\' objects")
 
   ell <- list(...)
 
+  if (!is.null(ell$press.enter))
+    warning("\'press.enter\' is deprecated. Instead use par(ask=TRUE) before calling lpdtrace.")
   if (!is.null(ell$burnin))
-    warning("Use of burnin is depriciated in postprocessing. Use \'burnin.prop\' during original MCMC run instead.")
+    warning("Use of burnin is deprecated in postprocessing. Use \'burnin.prop\' during original MCMC run instead.")
   if (!is.null(ell$thin))
-    warning("Use of thin is depriciated in postprocessing. Use \'thin\' during original MCMC run instead.")
+    warning("Use of thin is deprecated in postprocessing. Use \'thin\' during original MCMC run instead.")
 
 
   if (missing(chain.no)) {
@@ -473,10 +498,10 @@ lpdtrace <- function(object, chain.no, use.llik = FALSE,
 
 
 
-    if (press.enter & plot.autocor) {
-      press_enter()
-      frame()
-    }
+    # if (press.enter & plot.autocor) {
+    #   press_enter()
+    #   frame()
+    # }
 
     if (plot.autocor) {
       all_autocors <- lapply(1:n.chains,
@@ -530,11 +555,10 @@ lpdtrace <- function(object, chain.no, use.llik = FALSE,
     title(main = main)
 
 
-    if (press.enter & plot.autocor) {
-      press_enter()
-      frame()
-
-    }
+    # if (press.enter & plot.autocor) {
+    #   press_enter()
+    #   frame()
+    # }
 
     if (plot.autocor) {
 
@@ -590,24 +614,28 @@ lpdtrace <- function(object, chain.no, use.llik = FALSE,
 #' # illustration only - more iterations needed for convergence
 #' fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
 #'                              n.chains = 1)
-#' plot(fit.vmsin.20, press.enter = FALSE)
+#' plot(fit.vmsin.20)
 #' @export
 
 plot.angmcmc <- function(x, par.name, comp.label, chain.no,
                          do.paramtrace = TRUE,
                          do.lpdtrace = TRUE, use.llik = FALSE,
-                         press.enter = TRUE, ...)
+                         ...)
 {
   if (!is.angmcmc(x))
     stop("\'x\' must be an angmcmc object")
 
-  if (do.paramtrace)
-    paramtrace(x, par.name, comp.label, chain.no, press.enter, ...)
+  ell <- list(...)
+  if (!is.null(ell$press.enter))
+    warning("\'press.enter\' is deprecated. Instead use par(ask=TRUE) before calling plot.angmcmc.")
 
-  if (press.enter) {
-    press_enter()
-    frame()
-  }
+  if (do.paramtrace)
+    paramtrace(x, par.name, comp.label, chain.no, ...)
+
+  # if (press.enter) {
+  #   press_enter()
+  #   frame()
+  # }
 
   if (do.lpdtrace)
     lpdtrace(x, chain.no, use.llik)

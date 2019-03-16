@@ -176,12 +176,13 @@ circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 
   if (model == "vmcos") {
     ell <- list(...)
 
-    if (!is.null(ell$qrnd_grid)) {
-      qrnd_grid <- ell$qrnd_grid
+
+    if (!is.null(ell$qrnd)) {
+      qrnd_grid <- ell$qrnd
       dim_qrnd <- dim(qrnd_grid)
       if (!is.matrix(qrnd_grid) | is.null(dim_qrnd) |
           dim_qrnd[2] != 2)
-        stop("qrnd_grid must be a two column matrix")
+        stop("\'qrnd\' must be a two column matrix")
       n_qrnd <- dim_qrnd[1]
     } else if (!is.null(ell$n_qrnd)){
       n_qrnd <- round(ell$n_qrnd)
@@ -206,7 +207,10 @@ circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 
            function(j) {
              inargs <- list(kappa1 = kappa1[j], kappa2 = kappa2[j],
                             kappa3 = kappa3[j], N = nsim)
-             if (model == "vmcos") inargs$qrnd_grid <- qrnd_grid
+             if (model == "vmcos") {
+               inargs$qrnd_grid <- qrnd_grid
+               # inargs$force_approx_const <- ell$force_approx_const
+             }
              do.call(paste0(model, "_var_cor_singlepar"),
                      inargs)
            }

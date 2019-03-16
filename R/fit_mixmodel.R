@@ -124,7 +124,7 @@ find_lscale_mat_uni <- function(x) {
 #' one for each chain. Ignored if \code{start_par} is supplied. See \code{start_par} for more details. Defaults to \code{FALSE}.
 #' @param tune_ave_size number previous iterations used to compute the acceptance rate while tuning in burn-in. Must be a positive
 #' integer. Defaults to 100.
-#' @param qrnd_grid,n_qrnd Used only if \code{method="vmcos"}. See \link{dvmcos} for details.
+#' @param qrnd,n_qrnd Used only if \code{method="vmcos"}. See \link{dvmcos} for details.
 #' @param kappa_upper,kappa_lower upper and lower bounds for the concentration and (absolute) association parameters. Must be a positive integers. Defaults to 150 and 1e-4,
 #' and parameter with value above or below these limits rarely make sense in practice.
 #' Warning: values much larger or smaller than the default are not recommended as they can cause numerical instability.
@@ -142,14 +142,19 @@ find_lscale_mat_uni <- function(x) {
 #' Parallelization is done by default when more than one chain is used,
 #' but the chains can be run sequentially as well by setting
 #' \code{chains_parallel = FALSE}. To retain reproducibility while running
-#' multiple chains in parallel, the same RNG state is passed to each chain
-#' (then the state is changed across chains so that no two chains can become
-#' identical, even if they have the same starting and tuning parameters). This,
-#' however creates a difference between a  \code{fit_angmix} call with multiple
-#' chains, one run sequentially by setting \code{chains_parallel = FALSE}, and
-#' another run sequentially due to a sequential \code{plan()} (or no \code{plan()})
-#' used before the \code{fit_angmix} call, with \code{chains_parallel = TRUE}.
-#' In the former, different RNG states are passed at the initiation of each chain.
+#' multiple chains in parallel, the same RNG state is passed at the
+#' beginning of each chain. This is done by specifying \code{future.seed = TRUE}
+#' in \code{future.apply::future_lapply} call. Then at the beginning of the i-th
+#' chain, before drawing any parameters, i-many Uniform(0, 1) random numbers are
+#' generated using \code{runif(i)} (and then thrown away). This ensures that the
+#' RNG states across chains prior to random generation of the parameters are
+#' different, and hence, no two chains can become identical, even if they have
+#' the same starting and tuning parameters. This, however creates a difference
+#' between a \code{fit_angmix} call with multiple chains which is run sequentially
+#' by setting \code{chains_parallel = FALSE}, and another which is run sequentially
+#' because of a sequential \code{plan()} (or no \code{plan()}), with
+#' \code{chains_parallel = TRUE}. In the former, different RNG states are passed at
+#' the initiation of each chain.
 #'
 #'
 #' @examples
@@ -159,9 +164,9 @@ find_lscale_mat_uni <- function(x) {
 #' fit.vmsin.20
 #'
 #'
-#' # Parallelization is implemented via \link{future_lapply} from the
+#' # Parallelization is implemented via future_lapply from the
 #' # package future.apply. To parallelize, first provide a parallel
-#' # plan() for futures. Otherwise the chains will run sequentially.
+#' # plan(); otherwise the chains will run sequentially.
 #' # Note that not all plan() might work on every OS, as they execute
 #' # functions defined internally in fit_mixmodel. We suggest
 #' # plan(multiprocess).
@@ -229,7 +234,7 @@ fit_angmix <- function(model = "vmsin",
                        kappa_upper = 150,
                        kappa_lower = 1e-4,
                        return_tune_param = FALSE,
-                       qrnd_grid = NULL,
+                       qrnd = NULL,
                        n_qrnd = NULL, ...)
 {
 
@@ -550,8 +555,9 @@ fit_angmix <- function(model = "vmsin",
       par_vec <- c(exp(par_vec_lscale[1:2]), par_vec_lscale[3:5])
       lpd_grad <- matrix(NA, 6, 1)
       if (n.clus > 0) {
-        lpd_grad <- grad_llik_vmsin_C(data[obs_group, , drop=FALSE],
-                                      par_vec)*
+        lpd_grad <- suppressWarnings(
+          grad_llik_vmsin_C(data[obs_group, , drop=FALSE],
+                            par_vec))*
           c(par_vec[1:2], rep(1, 4)) +
           c( # grad for lprior
             -par_vec_lscale[1:3]/norm.var, 0, 0,
@@ -602,10 +608,10 @@ fit_angmix <- function(model = "vmsin",
 
   else if (model == "vmcos") {
 
-    ell <- list(qrnd_grid = qrnd_grid, n_qrnd = n_qrnd)
+    ell <- list(qrnd_grid = qrnd, n_qrnd = n_qrnd)
 
-    if (!is.null(ell$qrnd_grid)) {
-      qrnd_grid <- ell$qrnd_grid
+    if (!is.null(ell$qrnd)) {
+      qrnd_grid <- ell$qrnd
       dim_qrnd <- dim(qrnd_grid)
       if (!is.matrix(qrnd_grid) | is.null(dim_qrnd) |
           dim_qrnd[2] != 2)
@@ -686,8 +692,9 @@ fit_angmix <- function(model = "vmsin",
       par_vec <- c(exp(par_vec_lscale[1:2]), par_vec_lscale[3:5])
       lpd_grad <- matrix(NA, 6, 1)
       if (n.clus > 0) {
-        lpd_grad[] <- grad_llik_vmcos_C(data[obs_group, , drop=FALSE],
-                                        par_vec[], qrnd_grid) *
+        lpd_grad[] <- suppressWarnings(
+          grad_llik_vmcos_C(data[obs_group, , drop=FALSE],
+                            par_vec[], qrnd_grid)) *
           c(par_vec[1:2], rep(1, 4)) +
           c( # grad for lprior
             -par_vec_lscale[1:3]/norm.var, 0, 0,
@@ -982,8 +989,9 @@ fit_angmix <- function(model = "vmsin",
       lpd_grad <- matrix(NA, 3, 1)
       par_vec <- c(exp(par_vec_lscale[1]), par_vec_lscale[2])
       if (n.clus > 0) {
-        lpd_grad[] <- grad_llik_univm_C(data[obs_group],
-                                        par_vec[]) * c(par_vec[1], 1, 1) +
+        lpd_grad[] <- suppressWarnings(
+          grad_llik_univm_C(data[obs_group],
+                            par_vec[])) * c(par_vec[1], 1, 1) +
 
           c( # grad for lprior
             -par_vec_lscale[1]/norm.var, 0,

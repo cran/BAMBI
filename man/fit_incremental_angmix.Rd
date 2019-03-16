@@ -9,7 +9,7 @@ fit_incremental_angmix(model, data, crit = "LOOIC", start_ncomp = 1,
   start_par = NULL, prev_par = TRUE, logml_maxiter = 10000,
   return_all = FALSE, save_fits = FALSE, save_file = NULL,
   save_dir = "", silent = FALSE, return_llik_contri = (crit \%in\%
-  c("LOOIC", "WAIC")), use_best_chain = TRUE, ...)
+  c("LOOIC", "WAIC")), use_best_chain = TRUE, alpha = 0.05, ...)
 }
 \arguments{
 \item{model}{angular model whose mixtures are to be fitted. Available choices are \code{"vmsin", "vmcos"} and \code{"wnorm2"} for
@@ -18,7 +18,7 @@ bivariate data, and \code{"vm"} and \code{"wnorm"} for univariate data.}
 \item{data}{data matrix (if bivarate, in which case it must have two columns) or vector. If outside, the values
 are transformed into the scale \eqn{[0, 2\pi)}.}
 
-\item{crit}{model selection criteria, one of \code{"AIC", "BIC", "DIC", "LOGML", "LOOIC"} or \code{"WAIC"}. Default is
+\item{crit}{model selection criteria, one of \code{"LOOIC", "WAIC", "AIC", "BIC", "DIC"} or \code{"LOGML"}. Default is
 \code{"LOOIC"}.}
 
 \item{start_ncomp}{starting component size. A single component model is fitted if \code{start_ncomp} is equal to one.}
@@ -81,6 +81,10 @@ or \code{"WAIC"}, and to \code{FALSE} otherwise.}
 computation of model selection criterion? Here "best" means the chain
 with largest (mean over iterations) log-posterior density. This can be helpful if one of the chains gets stuck at local optima. Defaults to TRUE.}
 
+\item{alpha}{significance level used in the test H_{0K}: expected log predictive density (elpd) for the fitted model with  K components >= elpd for the fitted model
+with K + 1 components if \code{crit} is \code{"LOOIC"} or \code{"WAIC"}. See Details.
+Must be a scalar between 0 and 1. Defaults to 0.05. Ignored for any other \code{crit}.}
+
 \item{...}{additional arguments passed to \link{fit_angmix}.}
 }
 \value{
@@ -92,7 +96,7 @@ Returns a named list (with class = \code{stepfit}) with the following seven elem
 
 \code{ncomp.best} - optimum component size (integer);
 
-\code{crit} - which model comparison criterion used (one of \code{"AIC", "BIC", "DIC"} or \code{"WAIC"});
+\code{crit} - which model comparison criterion used (one of \code{"LOOIC", "WAIC", "AIC", "BIC", "DIC"} or \code{"LOGML"});
 
 \code{crit.all} - all \code{crit} values calculated (for all component sizes);
 
@@ -110,16 +114,23 @@ Stepwise fitting of angular mixture models with incremental component sizes and 
 \details{
 The goal is to fit an angular mixture model with an optimally chosen component size K.
 To obtain an optimum K, mixture models with incremental component sizes
-between \code{start_ncomp} and \code{max_ncomp} are fitted stepwise using \link{fit_angmix}.
-The mixture model with the first minimum value of the model selection criterion \code{crit}
+between \code{start_ncomp} and \code{max_ncomp} are fitted incrementally using \link{fit_angmix},
+starting from K = 1.
+If the model selection criterion \code{crit} is \code{"LOOIC"} or \code{"WAIC"}, then a test of hypothesis
+H_{0K}: expected log predictive density (elpd) for the fitted model with  K components >= elpd for the fitted model
+with K + 1 components, is performed at every K >= 1. The test-statistic used for the test is an approximate z-score
+based on the normalized estimated elpd difference between the two models (obtained from \link[loo]{compare}, which provides
+estimated elpd difference along with its standard error estimate). The incremental fitting stops if  H_{0K} cannot be rejected
+(at level \code{alpha}) for some K >= 1; this K is then regarded as the optimum number of components.
+If \code{crit} is not \code{"LOOIC"} or \code{"WAIC"} then mixture model with the first minimum value of the model selection criterion \code{crit}
 is taken as the best model.
 
 Note that in each intermediate fitted model, the total number of components (instead of the number of
 "non-empty components") in the model is used to estimate of the true component
-size, and then the fitted model is penalized for model complexity (via the model selection criterion).
+size, and then the fitted model is penalized for model complexity (via the model selection criterion used).
 This approach of selecting an optimal K follows the perspective "let two component specific parameters
 be identical" for overfitting mixtures, and as such the  Dirichlet prior hyper-parameters \code{pmix.alpha}
-(passed to \link{fit_angmix}) should be large. See  Fruhwirth-Schnatter (2011) and Mengerson for more deltails.
+(passed to \link{fit_angmix}) should be large. See  Fruhwirth-Schnatter (2011) for more deltails.
 
 Note that the stability of \link{bridge_sampler} used in marginal likelihood estimation heavily depends on stationarity of the
 chains. As such, while using this criterion, we recommending running the chain long engouh, and setting \code{fix_label = TRUE}
@@ -128,11 +139,11 @@ for optimal performance.
 \examples{
 # illustration only - more iterations needed for convergence
 set.seed(1)
-fit.vm.step.15 <- fit_incremental_angmix("vmsin", tim8, "BIC", start_ncomp = 1,
+fit.vmsin.step.15 <- fit_incremental_angmix("vmsin", tim8, "BIC", start_ncomp = 1,
                                           max_ncomp = 3, n.iter = 15,
                                           n.chains = 1, save_fits=FALSE)
-(fit.vm.best.15 <- bestmodel(fit.vm.step.15))
-lattice::densityplot(fit.vm.best.15)
+(fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15))
+lattice::densityplot(fit.vmsin.best.15)
 
 }
 \references{

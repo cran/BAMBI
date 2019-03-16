@@ -3,7 +3,7 @@
 #' @inheritParams fit_angmix
 #' @param start_ncomp starting component size. A single component model is fitted if \code{start_ncomp} is equal to one.
 #' @param max_ncomp maximum number of components allowed in the mixture model.
-#' @param crit model selection criteria, one of \code{"AIC", "BIC", "DIC", "LOGML", "LOOIC"} or \code{"WAIC"}. Default is
+#' @param crit model selection criteria, one of \code{"LOOIC", "WAIC", "AIC", "BIC", "DIC"} or \code{"LOGML"}. Default is
 #' \code{"LOOIC"}.
 #' @param L HMC tuning parameter (trajectory length) passed to \link{fit_angmix}. Can be a numeric vetor (or scalar), in which case
 #' the same \code{L} is passed to all \link{fit_angmix} calls, or can be a list of length \code{max_ncomp-start_ncomp+1},
@@ -41,20 +41,30 @@
 #' with largest (mean over iterations) log-posterior density. This can be helpful if one of the chains gets stuck at local optima. Defaults to TRUE.
 #' @param return_llik_contri passed to \link{fit_angmix}. By default, set to \code{TRUE} if \code{crit} is either \code{"LOOIC"}
 #' or \code{"WAIC"}, and to \code{FALSE} otherwise.
+#' @param alpha significance level used in the test H_{0K}: expected log predictive density (elpd) for the fitted model with  K components >= elpd for the fitted model
+#' with K + 1 components if \code{crit} is \code{"LOOIC"} or \code{"WAIC"}. See Details.
+#' Must be a scalar between 0 and 1. Defaults to 0.05. Ignored for any other \code{crit}.
 #'
 #' @details
 #' The goal is to fit an angular mixture model with an optimally chosen component size K.
 #' To obtain an optimum K, mixture models with incremental component sizes
-#' between \code{start_ncomp} and \code{max_ncomp} are fitted stepwise using \link{fit_angmix}.
-#' The mixture model with the first minimum value of the model selection criterion \code{crit}
+#' between \code{start_ncomp} and \code{max_ncomp} are fitted incrementally using \link{fit_angmix},
+#' starting from K = 1.
+#' If the model selection criterion \code{crit} is \code{"LOOIC"} or \code{"WAIC"}, then a test of hypothesis
+#' H_{0K}: expected log predictive density (elpd) for the fitted model with  K components >= elpd for the fitted model
+#' with K + 1 components, is performed at every K >= 1. The test-statistic used for the test is an approximate z-score
+#' based on the normalized estimated elpd difference between the two models (obtained from \link[loo]{compare}, which provides
+#' estimated elpd difference along with its standard error estimate). The incremental fitting stops if  H_{0K} cannot be rejected
+#' (at level \code{alpha}) for some K >= 1; this K is then regarded as the optimum number of components.
+#' If \code{crit} is not \code{"LOOIC"} or \code{"WAIC"} then mixture model with the first minimum value of the model selection criterion \code{crit}
 #' is taken as the best model.
 #'
 #' Note that in each intermediate fitted model, the total number of components (instead of the number of
 #' "non-empty components") in the model is used to estimate of the true component
-#' size, and then the fitted model is penalized for model complexity (via the model selection criterion).
+#' size, and then the fitted model is penalized for model complexity (via the model selection criterion used).
 #' This approach of selecting an optimal K follows the perspective "let two component specific parameters
 #' be identical" for overfitting mixtures, and as such the  Dirichlet prior hyper-parameters \code{pmix.alpha}
-#' (passed to \link{fit_angmix}) should be large. See  Fruhwirth-Schnatter (2011) and Mengerson for more deltails.
+#' (passed to \link{fit_angmix}) should be large. See  Fruhwirth-Schnatter (2011) for more deltails.
 #'
 #' Note that the stability of \link{bridge_sampler} used in marginal likelihood estimation heavily depends on stationarity of the
 #' chains. As such, while using this criterion, we recommending running the chain long engouh, and setting \code{fix_label = TRUE}
@@ -75,7 +85,7 @@
 #'
 #' \code{ncomp.best} - optimum component size (integer);
 #'
-#' \code{crit} - which model comparison criterion used (one of \code{"AIC", "BIC", "DIC"} or \code{"WAIC"});
+#' \code{crit} - which model comparison criterion used (one of \code{"LOOIC", "WAIC", "AIC", "BIC", "DIC"} or \code{"LOGML"});
 #'
 #' \code{crit.all} - all \code{crit} values calculated (for all component sizes);
 #'
@@ -90,16 +100,17 @@
 #' @examples
 #' # illustration only - more iterations needed for convergence
 #' set.seed(1)
-#' fit.vm.step.15 <- fit_incremental_angmix("vmsin", tim8, "BIC", start_ncomp = 1,
+#' fit.vmsin.step.15 <- fit_incremental_angmix("vmsin", tim8, "BIC", start_ncomp = 1,
 #'                                           max_ncomp = 3, n.iter = 15,
 #'                                           n.chains = 1, save_fits=FALSE)
-#' (fit.vm.best.15 <- bestmodel(fit.vm.step.15))
-#' lattice::densityplot(fit.vm.best.15)
+#' (fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15))
+#' lattice::densityplot(fit.vmsin.best.15)
 #'
 #' @export
 
 
-fit_incremental_angmix <- function(model, data, crit = "LOOIC",
+fit_incremental_angmix <- function(model, data,
+                                   crit = "LOOIC",
                                    start_ncomp=1, max_ncomp=10,
                                    L = NULL,
                                    fn = mean,
@@ -115,6 +126,7 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
                                    silent = FALSE,
                                    return_llik_contri = (crit %in% c("LOOIC", "WAIC")),
                                    use_best_chain = TRUE,
+                                   alpha = 0.05,
                                    ...)
 {
   if (length(model) > 1)
@@ -149,8 +161,8 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
   if (is.null(save_file)) {
     save_file <- lapply(all_ncomp, function(j) paste0(save_dir, "/comp_", j, ".Rdata"))
   }
-   else if (!is.list(save_file) | length(save_file) != n_ncomp)
-     stop("\'save_file\' must be a list of length max_ncomp-start_ncomp+1")
+  else if (!is.list(save_file) | length(save_file) != n_ncomp)
+    stop("\'save_file\' must be a list of length max_ncomp-start_ncomp+1")
 
 
   crit_print <- crit
@@ -186,7 +198,7 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
   if (is.null(ell$perm_sampling))
     ell$perm_sampling <- formals(fit_angmix)$perm_sampling
 
-  if (is.null(fix_label)){
+  if (is.null(fix_label)) {
     if(any(form == 1 & crit == "DIC", ell$perm_sampling & prev_par,
            ell$perm_sampling & crit == "LOGML")) {
       fix_label <- TRUE
@@ -196,8 +208,18 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
 
   }
 
+  if (any(length(alpha) != 1,
+          !is.numeric(alpha),
+          alpha < 0,
+          alpha > 1)) {
 
-   # all_fit <- vector("list", n_ncomp)
+    stop("\'alpha\' must be a scalar between 0 and 1")
+  }
+
+  q_norm <- qnorm(alpha, lower.tail = F)
+
+
+  # all_fit <- vector("list", n_ncomp)
   all_input <- list("data" = data, "model" = model,
                     return_llik_contri = return_llik_contri,
                     ...)
@@ -239,7 +261,8 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
   all_par_est <- vector("list", length = max_ncomp-start_ncomp+1)
 
 
-  all_crit <- rep(0, n_ncomp)
+  # all_crit <- rep(0, n_ncomp)
+  all_crit <- vector("list", length = n_ncomp)
   all_maxllik <- rep(0, n_ncomp)
 
   if(!form %in% 1:2) form <- 1
@@ -359,53 +382,82 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
 
     if (crit == "WAIC") {
       curr_crit <- suppressWarnings(loo::waic(fit_angmcmc_adj))
-      all_crit[j] <- curr_crit$estimates["waic", 1]
+      all_crit[[j]] <- curr_crit
     }
 
     else if (crit == "LOOIC") {
       curr_crit <- suppressWarnings(loo::loo(fit_angmcmc_adj))
-      all_crit[j] <- curr_crit$estimates["looic", 1]
+      all_crit[[j]] <- curr_crit
     }
 
     else if (crit == "LOGML") {
-         curr_crit <- tryCatch(bridgesampling::bridge_sampler(fit_angmcmc_adj, silent = TRUE, maxiter = logml_maxiter),
-                              error = function(e) "error")
+      curr_crit <- tryCatch(bridgesampling::bridge_sampler(fit_angmcmc_adj, silent = TRUE, maxiter = logml_maxiter),
+                            error = function(e) "error")
 
       if (unlist(curr_crit)[1] == "error")
         stop(paste0("log posterior too unstable with ncomp = ",
                     all_ncomp[j], " to calculate log ML. Try a different criterion."))
-      all_crit[j] <- -curr_crit$logml
+      all_crit[[j]] <- -curr_crit$logml
     }
 
     else if (crit == "DIC") {
       curr_crit <- DIC(fit_angmcmc_adj, form=form)
-      all_crit[j] <- curr_crit["DIC"]
+      all_crit[[j]] <- curr_crit["DIC"]
     }
 
     else if (crit == "AIC") {
-      all_crit[j] <- AIC(fit_angmcmc_adj)
+      all_crit[[j]] <- AIC(fit_angmcmc_adj)
     }
 
     else {
-      all_crit[j] <- BIC(fit_angmcmc_adj)
+      all_crit[[j]] <- BIC(fit_angmcmc_adj)
     }
 
     # if(j > start_ncomp) cat("\n")
 
     if(!silent) {
-      cat(paste("\t", "ncomp = ", all_ncomp[j], ",\t", crit_print, "=", round(all_crit[j], 3), "\n"))
+      crit_val_print <- ""
+      if (!crit %in% c("LOOIC", "WAIC"))
+        crit_val_print <- round(all_crit[[j]], 3)
+
+      cat(paste("\t", "ncomp = ", all_ncomp[j], ",\t",
+                crit_print, ":", crit_val_print))
+
+      if (crit %in% c("LOOIC", "WAIC")) {
+        cat("\n")
+        cat(suppressWarnings(utils::capture.output(all_crit[[j]])), sep = "\n")
+      }
+      cat("\n")
       cat("**************\n\n")
     }
 
-    if(j > 1 && all_crit[j] > all_crit[j-1]) {
-      check_min <- TRUE
-      j.best <- j-1
-      cat("\nFirst minimum attained. Stopping...\n")
-      fit_best <- fit_prev #previous fit is best
-      break
+    if (j > 1 ) {
+      if (crit %in% c("LOOIC", "WAIC")) {
+        compare_crit <- suppressWarnings(loo::compare(all_crit[[j-1]],
+                                                      all_crit[[j]]))
+        # test for signif improvement in elpd
+        # H0: curr elpd - prev elpd <= 0 vs Ha: >
+        zscore <- compare_crit[1]/compare_crit[2]
+        if (zscore <= q_norm) {
+          # fail to reject null at alpha = 0.05 --
+          # so no signific improvement in curr elpd compared to prev
+          check_min <- TRUE
+          j.best <- j-1
+          cat("\nImprovement in predicitive accuracy not significant. Stopping...\n")
+          fit_best <- fit_prev #previous fit is best
+          break
+        }
+      } else if (all_crit[[j]] > all_crit[[j-1]]) {
+        check_min <- TRUE
+        j.best <- j-1
+        cat("\nFirst minimum attained. Stopping...\n")
+        fit_best <- fit_prev #previous fit is best
+        break
+      }
     }
 
-    if(all_ncomp[j] == max_ncomp) {
+
+    if (all_ncomp[j] == max_ncomp) {
       cat("\n\'max_ncomp\' reached. Stopping...\n")
       j.best <- max_ncomp
       fit_best <- fit_angmcmc
@@ -415,7 +467,7 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
   result <- list("fit.all" = fit_all[1:j], "fit.best" = fit_best,
                  "ncomp.best" = all_ncomp[j.best], "crit" = crit,
                  "crit.all" = all_crit[1:j],
-                 "crit.best" = all_crit[j.best],
+                 "crit.best" = all_crit[[j.best]],
                  "maxllik.all" = all_maxllik[1:j],
                  "maxllik.best" = all_maxllik[j.best],
                  "check_min" = check_min)
@@ -426,24 +478,49 @@ fit_incremental_angmix <- function(model, data, crit = "LOOIC",
 }
 
 
-#' Extracting angmcmc object corresponding to the best fitted model in stepwise fits
+#' Convenience function for extracting angmcmc object, and the value of the model
+#' selection criterion corresponding to the best fitted model in stepwise fits
 #'
 #' @param step_object stepwise fitted object obtained from \link{fit_incremental_angmix}.
 #'
-#' @return Returns an angmcmc object corresponding to the the best fitted model in step_object.
+#' @return \code{bestmodel} returns an \code{angmcmc} object, and
+#' \code{bestcriterion} returns the  corresponding value of model selection criterion  for the best fitted model in \code{step_object}.
+#'
+#' @details
+#' These are convenience functions; the best fitted model and the corresponding value of model selection criterion
+#' can also be directly obtained by
+#' extracting the elements \code{"fit.best"} and \code{"crit.best"} from \code{step_object} respectively.
+#' Note that \code{bestcriterion} returns:
+#' (a) a scalar number (class = \code{numeric}) if \code{crit}
+#' used in original \code{fit_incremental_angmix} call is \code{'AIC'}, \code{'BIC'} or \code{'DIC'},
+#' (b) an element of class \code{bridge} from package \code{bridgesampling} if \code{crit} is
+#' \code{LOGML}, (c) an element of class \code{c("waic", "loo")} if \code{crit = 'WAIC'}, and (d) an element of
+#' class \code{c("psis_loo", "loo")} if \code{crit = "LOOIC"}. See documentations of these model
+#' selection criteria for more details.
 #'
 #' @examples
 #' # illustration only - more iterations needed for convergence
 #' set.seed(1)
 #' fit.vmsin.step.15 <- fit_incremental_angmix("vmsin", tim8, start_ncomp = 1,
 #'                                             max_ncomp = 3, n.iter = 15,
-#'                                             n.chains = 1)
+#'                                             n.chains = 1,
+#'                                             crit = "WAIC")
 #' fit.vmsin.best.15 <- bestmodel(fit.vmsin.step.15)
 #' fit.vmsin.best.15
 #'
+#' crit.best <- bestcriterion(fit.vmsin.step.15)
+#' crit.best
 #' @export
 
 bestmodel <- function(step_object) {
   if(class(step_object) != "stepfit") stop("\'step_object\' is not a stepwise fitted object")
   step_object$fit.best
+}
+
+
+#' @rdname bestmodel
+#' @export
+bestcriterion <- function(step_object) {
+  if(class(step_object) != "stepfit") stop("\'step_object\' is not a stepwise fitted object")
+  step_object$crit.best
 }

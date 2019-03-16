@@ -642,51 +642,51 @@ print.summary_angmcmc <- function(x, ...)
 
 
 
-#' AIC and BIC for angmcmc objects
-#' @inheritParams stats::AIC
-#' @inheritParams logLik.angmcmc
-#' @param ... additional argument to be passed to \link{logLik.angmcmc}
-#' @return AIC computes the AIC and BIC computes BIC for \code{angmcmc} objects.
-#'
-#' @details
-#' Note that \code{AIC.angmcmc} and \code{BIC.angmcmc} calls \link{logLik.angmcmc},
-#' which calculates Bayes estimate of the log-likelihood and *not* the maximum
-#' likelihood. As such, care needs to be taken while using theses quantities.
-#'
-#' \eqn{\hat{L}} is estimated by the sample maximum obtained from the MCMC realizations.
-#'
-#' @examples
-#' # illustration only - more iterations needed for convergence
-#' fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
-#'                              n.chains = 1)
-#' AIC(fit.vmsin.20)
-#' BIC(fit.vmsin.20)
-#'
-#' @export
-
-AIC.angmcmc <- function(object, ..., k = 2)
-{
-  if (!is.angmcmc(object))
-    stop("\'object\' must be an angmcmc object")
-
-  ell <- list(...)
-
-  if (any(!is.null(ell$burnin),  !is.null(ell$thin)))
-    warning("Use of burnin and thin are obsolete. Specify \'burnin.prop\' and \'thin\' during original MCMC run, or use \'add_burnin_thin\'.")
-
-  llik <- logLik.angmcmc(object, ...)
-  k*attr(llik, "df") - 2*as.numeric(llik)
-}
-
-
-
-#' @rdname AIC.angmcmc
-#' @export
-
-BIC.angmcmc <- function(object, ...)
-{
-  AIC.angmcmc(object, ..., k=log(object$n.data))
-}
+# #' AIC and BIC for angmcmc objects -- not needed
+# #' @inheritParams stats::AIC
+# #' @inheritParams logLik.angmcmc
+# #' @param ... additional argument to be passed to \link{logLik.angmcmc}
+# #' @return AIC computes the AIC and BIC computes BIC for \code{angmcmc} objects.
+# #'
+# #' @details
+# #' Note that \code{AIC.angmcmc} and \code{BIC.angmcmc} calls \link{logLik.angmcmc},
+# #' which calculates Bayes estimate of the log-likelihood and *not* the maximum
+# #' likelihood. As such, care needs to be taken while using theses quantities.
+# #'
+# #' \eqn{\hat{L}} is estimated by the sample maximum obtained from the MCMC realizations.
+# #'
+# #' @examples
+# #' # illustration only - more iterations needed for convergence
+# #' fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
+# #'                              n.chains = 1)
+# #' AIC(fit.vmsin.20)
+# #' BIC(fit.vmsin.20)
+# #'
+# #' @export
+# #'
+# #' AIC.angmcmc <- function(object, ..., k = 2)
+# #' {
+# #'   if (!is.angmcmc(object))
+# #'     stop("\'object\' must be an angmcmc object")
+# #'
+# #'   ell <- list(...)
+# #'
+# #'   if (any(!is.null(ell$burnin),  !is.null(ell$thin)))
+# #'     warning("Use of burnin and thin are obsolete. Specify \'burnin.prop\' and \'thin\' during original MCMC run, or use \'add_burnin_thin\'.")
+# #'
+# #'   llik <- logLik.angmcmc(object, ...)
+# #'   k*attr(llik, "df") - 2*as.numeric(llik)
+# #' }
+# #'
+# #'
+# #'
+# #' @rdname AIC.angmcmc
+# #' @export
+# #'
+# #' BIC.angmcmc <- function(object, ...)
+# #' {
+# #'   AIC.angmcmc(object, ..., k=log(object$n.data))
+# #' }
 
 
 #' Deviance Information Criterion (DIC) for angmcmc objects
@@ -854,11 +854,13 @@ waic.angmcmc <- function(x, ...)
 #' @inheritParams waic.angmcmc
 #'
 #' @examples
+#' \dontrun{
 #' # illustration only - more iterations needed for convergence
 #' fit.vmsin.20 <- fit_vmsinmix(tim8, ncomp = 3, n.iter =  20,
 #'                              n.chains = 1, return_llik_contri = TRUE)
 #' library(loo)
 #' loo(fit.vmsin.20)
+#' }
 #' @export
 #'
 #' @details
@@ -1031,7 +1033,7 @@ r_fitted <- function(n=1, object, fn = mean, ...)
 #'
 #' There are two ways to estimate the log likelihood from the model. If \code{method = 1},
 #' then log likelihood is estimated by applying \code{fn} (defaults to max, if method = 1)
-#' direclty on the iteration-wise log likelihood values from the MCMC.
+#' direclty on the log likelihood values from observed during the MCMC run.
 #' On the other hand, if \code{method == 2}, then  parameter estimates
 #' are first computed using \code{pointest} with \code{fn}
 #' (defaults to "MODE", if \code{method == 2}) applied on the MCMC samples,
@@ -1111,7 +1113,9 @@ logLik.angmcmc <- function(object, method = 1, fn, ...)
 
 #' Log Marginal Likelihood via Bridge Sampling for angmcmc objects
 #' @param samples angmcmc object
-#' @param ... additional argument passed to \link{bridge_sampler}
+#' @param ... additional argument passed to \link{bridge_sampler}. Note that default for
+#' the argument \code{method} is \code{"warp3"}, (instead of \code{"normal"} as used in \code{bridgesampling} package)
+#' to account for multi-modality of the posterior density.
 #' @param ave_over_chains logical. Separately call \link{bridge_sampler} on
 #' each chain in the angmcmc object and then take the average? Defaults to \code{TRUE}.
 #' See details.
@@ -1152,6 +1156,11 @@ bridge_sampler.angmcmc <- function(samples, ..., ave_over_chains = TRUE)
 
 
   ell <- list(...)
+
+  if (is.null(ell$method)) {
+    ell$method <- "warp3"
+  }
+
   n.chains <- object$n.chains
 
   if (object$model == "wnorm2") {
@@ -1234,10 +1243,13 @@ bridge_sampler.angmcmc <- function(samples, ..., ave_over_chains = TRUE)
       tmp_mat <- do.call(rbind, lapply(1:n.chains,
                                        function(j)
                                          as.matrix(object_mcmc[[j]])))
-      bridgesampling::bridge_sampler(samples=tmp_mat,
-                                     log_posterior=calc_lpd,
-                                     data=object$data,
-                                     lb=lower, ub=upper, ...)
+
+      do.call(bridgesampling::bridge_sampler,
+              c(list(samples=tmp_mat,
+                     log_posterior=calc_lpd,
+                     data=object$data,
+                     lb=lower, ub=upper),
+                ell))
     }
     else {
       all_bridge_samp <- vector("list", n.chains)
@@ -1249,10 +1261,12 @@ bridge_sampler.angmcmc <- function(samples, ..., ave_over_chains = TRUE)
         }
 
         all_bridge_samp[[j]] <-
-          bridgesampling::bridge_sampler(samples=tmp_mat,
-                                         log_posterior=calc_lpd,
-                                         data=object$data,
-                                         lb=lower, ub=upper, ...)
+          do.call(bridgesampling::bridge_sampler,
+                  c(list(samples=tmp_mat,
+                         log_posterior=calc_lpd,
+                         data=object$data,
+                         lb=lower, ub=upper),
+                    ell))
       }
 
       final_res <- all_bridge_samp[[1]]
@@ -1353,10 +1367,12 @@ bridge_sampler.angmcmc <- function(samples, ..., ave_over_chains = TRUE)
       tmp_mat <- do.call(rbind, lapply(1:n.chains,
                                        function(j)
                                          as.matrix(object_mcmc[[j]])))
-      bridgesampling::bridge_sampler(samples=tmp_mat,
-                                     log_posterior=calc_lpd,
-                                     data=object$data,
-                                     lb=lower, ub=upper, ...)
+      do.call(bridgesampling::bridge_sampler,
+              c(list(samples=tmp_mat,
+                     log_posterior=calc_lpd,
+                     data=object$data,
+                     lb=lower, ub=upper),
+                ell))
 
     }
     else {
@@ -1369,10 +1385,12 @@ bridge_sampler.angmcmc <- function(samples, ..., ave_over_chains = TRUE)
         }
 
         all_bridge_samp[[j]] <-
-          bridgesampling::bridge_sampler(samples=tmp_mat,
-                                         log_posterior=calc_lpd,
-                                         data=object$data,
-                                         lb=lower, ub=upper, ...)
+          do.call(bridgesampling::bridge_sampler,
+                  c(list(samples=tmp_mat,
+                         log_posterior=calc_lpd,
+                         data=object$data,
+                         lb=lower, ub=upper),
+                    ell))
       }
 
       final_res <- all_bridge_samp[[1]]
