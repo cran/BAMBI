@@ -2,6 +2,15 @@
 #' @param x two column matrix. NA values are not allowed.
 #' @param type type of the circular correlation.
 #' Must be one of "fl", "js", "tau1" and "tau2". See details.
+#' @param alternative one of \code{"two.sided"}, \code{"less"} or \code{"greater"}
+#' (defaults to \code{"two.sided"}).
+#' Hypothesis test is performed only when \code{type} is either \code{"fl"} or \code{"js"},
+#' in which case asymptotic standard error of the estimator is used to construct the test
+#' statistic.
+#' @param jackknife logical. Compute jackknifed estimate and standard error? Defaults to FALSE.
+#' @param bootse logical. Compute bootstrap standard error? Defaults to FALSE.
+#' @param n.boot number of bootstrapped samples to compute bootstrap standard error. Defaults to
+#' 100. Ignored if \code{bootse} if FALSE.
 #'
 #' @details
 #' \code{circ_cor} calculates the (sample) circular correlation between the columns of x.
@@ -43,7 +52,8 @@
 #' @export
 
 
-circ_cor <- function(x, type="js") {
+circ_cor <- function(x, type="js", alternative = "two.sided",
+                     jackknife = FALSE, bootse = FALSE, n.boot = 100) {
 
   if (any(is.na(x)))
     stop("NA values in \'x\'")
@@ -60,24 +70,138 @@ circ_cor <- function(x, type="js") {
     stop("\'type\' must be one of \'js\', \'fl\', \'tau1\' or \'tau2\'")
 
   x <- prncp_reg(x)
+  n <- nrow(x)
 
   if (type == "fl") {
-    calc_corr_fl(x)
+    calc_rho <- function(x) {
+
+      rho <- calc_corr_fl(x)
+      A_over_mu2 <- function(margin) {
+        alpha <- sapply(1:2, function(p) sum(cos(p*margin))/n)
+        beta <- sapply(1:2, function(p) sum(sin(p*margin))/n)
+        A <- alpha[1]^2 + beta[1]^2 + alpha[2]*beta[1]^2 -
+          alpha[1]^2*alpha[2] - 2*alpha[1]*beta[1]*beta[2]
+        mu2 <- 0.5 * (1 - alpha[2]^2 - beta[2]^2)
+        A/mu2
+      }
+      avar <- prod(apply(x, 2, A_over_mu2))
+
+      se <- sqrt(avar)/sqrt(n)
+      attr(rho, "se") <- se
+      rho
+
+    }
+    # attr(rho_fl, "se") <- se
+    # attr(rho_fl, "p.value") <- pval
+    # rho
   } else if (type == "js") {
-    sin_x_1_cent <- sin(x[, 1] - atan2(sum(sin(x[, 1])), sum(cos(x[, 1]))))
-    sin_x_2_cent <- sin(x[, 2] - atan2(sum(sin(x[, 2])), sum(cos(x[, 2]))))
-    num <- sum(sin_x_1_cent*sin_x_2_cent)
-    den <- sqrt(sum(sin_x_1_cent^2)*sum(sin_x_2_cent^2))
-    num/den
-    # x[, 1] <- x[, 1] - x_1_bar
-    # x[, 2] <- x[, 2] - x_2_bar
-    # calc_corr_js(x)
-    # unname(circ.cor1(x[,1], x[, 2], TRUE)[1])
+    calc_rho <- function(x) {
+      sin_x_1_cent <- sin(x[, 1] - atan2(sum(sin(x[, 1])), sum(cos(x[, 1]))))
+      sin_x_2_cent <- sin(x[, 2] - atan2(sum(sin(x[, 2])), sum(cos(x[, 2]))))
+      num <- sum(sin_x_1_cent*sin_x_2_cent)
+      den <- sqrt(sum(sin_x_1_cent^2)*sum(sin_x_2_cent^2))
+      rho <- num/den
+
+      # asymptotic variance
+      # idx <- data.matrix(expand.grid(0:4, 0:4))
+      idx <- rbind(
+        c(2, 2),
+        c(2, 0), c(0, 2),
+        c(1, 3), c(3, 1),
+        c(4, 0), c(0, 4)
+      )
+      rownames(idx) <- paste0(idx[, 1], idx[, 2])
+      lambda <- apply(
+        idx,
+        1,
+        function(ii) {
+          sum(sin_x_1_cent^(ii[1]) * sin_x_2_cent^(ii[2]))/n
+        }
+      )
+      avar <- unname(
+        max(
+          lambda["22"]/lambda["20"]*lambda["02"] -
+            rho * (
+              lambda["13"]/(lambda["20"]*sqrt(lambda["20"]*lambda["02"])) +
+                lambda["31"]/(lambda["02"]*sqrt(lambda["20"]*lambda["02"]))
+            ) +
+            rho^2 / 4 * (
+              1 +
+                lambda["40"]/lambda["20"]^2 +
+                lambda["04"]/lambda["02"]^2 +
+                lambda["22"]/(lambda["20"]*lambda["02"])
+            ),
+          1e-10
+        )
+      )
+
+      # browser()
+      se <- sqrt(avar)/sqrt(n)
+      # z <- rho_js/se
+      attr(rho, "se") <- se
+      # if (alternative == "two.sided") {
+      #   pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
+      # } else if (alternative == "less") {
+      #   pval <- pnorm(z, lower.tail = TRUE)
+      # } else if (alternative == "greater") {
+      #   pval <- pnorm(z, lower.tail = FALSE)
+      # }
+      #
+      # attr(rho_js, "se") <- se
+      # attr(rho_js, "p.value") <- pval
+      # rho_js
+      rho
+    }
   } else if (type == "tau1") {
-    calc_corr_tau_1(x)
+    calc_rho <- calc_corr_tau_1
   } else {
-    calc_corr_tau_2(x)
+    calc_rho <- calc_corr_tau_2
   }
+
+  # browser()
+
+  rho <- calc_rho(x)
+  rho_attr <- attributes(rho)
+
+  if (jackknife) {
+    vals <- vapply(
+      1:n,
+      function(ii){
+        c(calc_rho(x[-ii, , drop = FALSE]))
+      },
+      0
+    )
+    vals_adj <- n*rho - (n-1)*vals
+    rho_attr$jackknife.est <- sum(vals_adj)/n
+    rho_attr$jackknife.se <- sqrt(var(vals_adj)/n)
+  }
+
+  if (bootse) {
+    boot_vals <- vapply(
+      1:n.boot,
+      function(ii) {
+        idx <- sample(1:n, replace = TRUE)
+        c(calc_rho(x[idx, , drop = FALSE]))
+      },
+      0
+    )
+    rho_attr$bootse <- sd(boot_vals)
+  }
+
+  if (type %in% c("js", "fl")) {
+    z <- c(rho)/rho_attr$se
+    if (alternative == "two.sided") {
+      rho_attr$pval <- 2 * pnorm(abs(z), lower.tail = FALSE)
+    } else if (alternative == "less") {
+      rho_attr$pval <- pnorm(z, lower.tail = TRUE)
+    } else if (alternative == "greater") {
+      rho_attr$pval <- pnorm(z, lower.tail = FALSE)
+    }
+  }
+
+  attributes(rho) <- rho_attr
+  rho
+
 }
 
 
@@ -171,10 +295,10 @@ circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 
   if (nsim <= 0)
     stop("\'nsim\' must be a positive integer")
 
+  ell <- list(...)
   nsim <- round(nsim)
 
   if (model == "vmcos") {
-    ell <- list(...)
 
 
     if (!is.null(ell$qrnd)) {
@@ -206,7 +330,7 @@ circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 
     lapply(1:length(kappa1),
            function(j) {
              inargs <- list(kappa1 = kappa1[j], kappa2 = kappa2[j],
-                            kappa3 = kappa3[j], N = nsim)
+                            kappa3 = kappa3[j])
              if (model == "vmcos") {
                inargs$qrnd_grid <- qrnd_grid
                # inargs$force_approx_const <- ell$force_approx_const
@@ -221,7 +345,7 @@ circ_varcor_model <- function(model = "vmsin", kappa1 = 1, kappa2 = 1, kappa3 = 
       stop("abs(kappa3) must be less than sqrt(kappa1*kappa2) in wnorm2")
 
     inargs <- list(kappa1 = kappa1, kappa2 = kappa2,
-                   kappa3 = kappa3, N = nsim)
+                   kappa3 = kappa3)
     if (model == "vmcos") inargs$qrnd_grid <- qrnd_grid
     do.call(paste0(model, "_var_cor_singlepar"),
             inargs)

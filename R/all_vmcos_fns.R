@@ -145,7 +145,8 @@
 #'
 #' @export
 rvmcos <- function(n, kappa1=1, kappa2=1,
-                   kappa3=0, mu1=0, mu2=0, method=NULL)
+                   kappa3=0, mu1=0, mu2=0,
+                   method="naive")
 {
   if(any(c(kappa1, kappa2) < 0)) stop("kappa1 and kappa2 must be nonnegative")
   if(any(mu1 < 0 | mu1 >= 2*pi)) mu1 <- prncp_reg(mu1)
@@ -153,10 +154,10 @@ rvmcos <- function(n, kappa1=1, kappa2=1,
   if(n < 0) stop("invalid n")
 
 
-  if (is.null(method)) {
-    if (n > 100) method <- "vmprop"
-    else method <- "naive"
-  }
+  # if (is.null(method)) {
+  #   if (n > 1e5) method <- "vmprop"
+  #   else method <- "naive"
+  # }
 
   if (!method %in% c("naive", "vmprop"))
     stop("method must be either \'naive\' or \'vmprop\'")
@@ -171,8 +172,8 @@ rvmcos <- function(n, kappa1=1, kappa2=1,
              function(j) rvmcos_1par(1, k1[j], k2[j], k3[j],
                                      mu1[j], mu2[j], "naive"), c(0, 0)))
   } else {
-    if (is.null(method) & max(kappa1, kappa2, abs(kappa3)) < 0.1)
-      method <- "vmprop"
+    # if (is.null(method) & max(kappa1, kappa2, abs(kappa3)) < 0.1)
+    #   method <- "vmprop"
 
     rvmcos_1par(n, kappa1, kappa2, kappa3, mu1, mu2, method)
   }
@@ -398,7 +399,7 @@ dvmcos <- function(x, kappa1=1, kappa2=1, kappa3=0, mu1=0,
 #' @export
 
 rvmcosmix <- function(n, kappa1, kappa2, kappa3,
-                      mu1, mu2, pmix, method = NULL)
+                      mu1, mu2, pmix, method = "naive", ...)
 {
   allpar <- list(kappa1=kappa1, kappa2=kappa2, kappa3=kappa3,
                  mu1=mu1, mu2=mu2, pmix=pmix)
@@ -518,48 +519,97 @@ fit_vmcosmix <- function(...)
 
 
 
-vmcos_var_cor_singlepar_large <- function(kappa1, kappa2, kappa3, N) {
+vmcos_var_cor_singlepar_numeric <- function(kappa1, kappa2, kappa3, qrnd_grid) {
   # N <- 1e4
-  dat <- rvmcos(N, kappa1, kappa2, kappa3, 0, 0)
 
-  ave_sin1sin2 <- sum(sin(dat[, 1]) * sin(dat[, 2]))/N
-  ave_cos1cos2 <- sum(cos(dat[, 1]) * cos(dat[, 2]))/N
+  # browser()
 
-  ave_sin1sq <- sum(sin(dat[, 1])^2)/N
-  ave_cos1sq <- 1-ave_sin1sq
-  ave_cos1 <- sum(cos(dat[, 1]))/N
+  fn_log_vmcos_const <- function(pars) {
+    const_vmcos(pars[1], pars[2], pars[3], uni_rand = qrnd_grid, return_log = TRUE)
+  }
 
-  ave_sin2sq <- sum(sin(dat[, 2])^2)/N
-  ave_cos2sq <- 1-ave_sin2sq
-  ave_cos2 <- sum(cos(dat[, 2]))/N
+  # const <- fn_log_vmcos_const(c(kappa1, kappa2, kappa3))
+  grad_over_const <- numDeriv::grad(fn_log_vmcos_const, c(kappa1, kappa2, kappa3))
+  names(grad_over_const) <- c("k1", "k2", "k3")
+  hess_over_const <- numDeriv::hessian(fn_log_vmcos_const, c(kappa1, kappa2, kappa3)) +
+    tcrossprod(grad_over_const)
+  dimnames(hess_over_const) <- list(c("k1", "k2", "k3"), c("k1", "k2", "k3"))
 
-  rho_js <- ave_sin1sin2/sqrt(ave_sin1sq * ave_sin2sq)
-  # ifelse(ave_sin1sin2 >= 0, 1, -1) *
-  # min(abs(ave_sin1sin2)/sqrt(ave_sin1sq * ave_sin2sq), 1)
+  rho_fl <- unname(
+    ((grad_over_const["k3"] - hess_over_const["k1", "k2"]) *
+       hess_over_const["k1", "k2"]) /
+      sqrt(
+        hess_over_const["k1", "k1"] * (1 - hess_over_const["k1", "k1"])
+        * hess_over_const["k2", "k2"] * (1 - hess_over_const["k2", "k2"])
+      )
+  )
 
-  rho_fl <- rho_js *
-    ave_cos1cos2/sqrt(ave_cos1sq * ave_cos2sq)
-  # ifelse(ave_cos1cos2 >= 0, 1, -1) *
-  # min(abs(ave_cos1cos2)/sqrt(ave_cos1sq * ave_cos2sq), 1)
+  rho_js <- unname(
+    (grad_over_const["k3"] - hess_over_const["k1", "k2"]) /
+      sqrt((1 - hess_over_const["k1", "k1"]) *
+             (1 - hess_over_const["k2", "k2"]))
+  )
 
-  var1 <- min(1 - ave_cos1, 1)
-  var2 <- min(1 - ave_cos2, 1)
+  var1 <- unname(1 - grad_over_const["k1"])
+  var2 <- unname(1 - grad_over_const["k2"])
+  # dat <- rvmcos(N, kappa1, kappa2, kappa3, 0, 0)
+  #
+  # ave_sin1sin2 <- sum(sin(dat[, 1]) * sin(dat[, 2]))/N
+  # ave_cos1cos2 <- sum(cos(dat[, 1]) * cos(dat[, 2]))/N
+  #
+  # ave_sin1sq <- sum(sin(dat[, 1])^2)/N
+  # ave_cos1sq <- 1-ave_sin1sq
+  # ave_cos1 <- sum(cos(dat[, 1]))/N
+  #
+  # ave_sin2sq <- sum(sin(dat[, 2])^2)/N
+  # ave_cos2sq <- 1-ave_sin2sq
+  # ave_cos2 <- sum(cos(dat[, 2]))/N
+  #
+  # rho_js <- ave_sin1sin2/sqrt(ave_sin1sq * ave_sin2sq)
+  # # ifelse(ave_sin1sin2 >= 0, 1, -1) *
+  # # min(abs(ave_sin1sin2)/sqrt(ave_sin1sq * ave_sin2sq), 1)
+  #
+  # rho_fl <- rho_js *
+  #   ave_cos1cos2/sqrt(ave_cos1sq * ave_cos2sq)
+  # # ifelse(ave_cos1cos2 >= 0, 1, -1) *
+  # # min(abs(ave_cos1cos2)/sqrt(ave_cos1sq * ave_cos2sq), 1)
+  #
+  # var1 <- min(1 - ave_cos1, 1)
+  # var2 <- min(1 - ave_cos2, 1)
 
   list(var1 = var1, var2 = var2, rho_fl = rho_fl, rho_js = rho_js)
 }
 
 
 vmcos_var_cor_singlepar <- function(kappa1, kappa2, kappa3,
-                                    N, qrnd_grid) {
-  if (max(kappa1 > 150, kappa2 > 150, abs(kappa3)) > 150) {
-    vmcos_var_cor_singlepar_large(kappa1, kappa2,
-                                  kappa3, N)
-  } else if(kappa3 < -1 | max(kappa1, kappa2, abs(kappa3)) > 50) {
-    vmcos_var_corr_mc(kappa1, kappa2, kappa3, qrnd_grid)
+                                    qrnd_grid) {
+  if (max(kappa1, kappa2, abs(kappa3)) > 50 |
+      kappa3 < 0) {
+    out <- vmcos_var_cor_singlepar_numeric(kappa1, kappa2,
+                                           kappa3, qrnd_grid)
+    # } else if(kappa3 < -1 | max(kappa1, kappa2, abs(kappa3)) > 50) {
+    #   vmcos_var_corr_mc(kappa1, kappa2, kappa3, qrnd_grid)
   } else {
-    vmcos_var_corr_anltc(kappa1, kappa2, kappa3)
+    out <- vmcos_var_corr_anltc(kappa1, kappa2, kappa3)
   }
 
+  for (rho in c("rho_js", "rho_fl")) {
+    if (out[[rho]] <= -1) {
+      out[[rho]] <- -1
+    } else if (out[[rho]] >= 1) {
+      out[[rho]] <- 1
+    }
+  }
+
+  for (var in c("var1", "var2")) {
+    if (out[[var]] <= 0) {
+      out[[var]] <- 0
+    } else if (out[[var]] >= 1) {
+      out[[var]] <- 1
+    }
+  }
+
+  out
 }
 
 
@@ -592,7 +642,7 @@ rvmcos_1par <- function(n=1, kappa1, kappa2, kappa3, mu1, mu2, method)
           kappa13 <- sqrt(kappa1^2 + kappa3^2 + 2*kappa1*kappa3*cos(phi))
           -kappa1*kappa3*A_bessel(kappa13)/kappa13 - kappa2
         }
-        find_root <- rootSolve::uniroot.all(phistar_eqn, c(0, 2*pi))
+        find_root <- uniroot.all(phistar_eqn, c(0, 2*pi))
         # if no root found, use the naive two dimensional rejection sampler
         if (is.null(find_root)) {
           method <- "naive"
