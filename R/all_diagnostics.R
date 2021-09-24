@@ -46,6 +46,8 @@ contour.angmcmc <-  function(x, fn = "MAP", type = "point-est", show.data = TRUE
     levels <- exp(seq(-20,2, length.out = nlevels))
   }
 
+  dots <- list(...)
+
   colnames_data <- colnames(x$data)
 
   if(is.null(colnames_data)) {
@@ -63,13 +65,25 @@ contour.angmcmc <-  function(x, fn = "MAP", type = "point-est", show.data = TRUE
 
   coords <- as.matrix(expand.grid(xpoints, ypoints))
   dens <- d_fitted(coords, x, fn = fn, type = type)
-  contour(xpoints, ypoints, matrix(dens, nrow=length(xpoints)),
-          levels=levels)
+
+  contour_in <- c(
+    list(
+      x = xpoints,
+      y = ypoints,
+      z = matrix(dens, nrow=length(xpoints)),
+      levels = levels
+    ),
+    dots
+  )
+
+  if (is.null(dots$xlab)) contour_in$xlab <- xlab
+  if (is.null(dots$ylab)) contour_in$ylab <- ylab
+  if (is.null(dots$main)) contour_in$main <- main
+
+  do.call(contour, contour_in)
 
   if(show.data) points(x$data, col = scales::alpha(col, alpha),
                        cex = cex, pch = pch)
-
-  title(main = main, xlab = xlab, ylab = ylab)
 }
 
 

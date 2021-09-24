@@ -1,8 +1,8 @@
-28e98937ff92e06b8aa8d37a48eed63a *DESCRIPTION
+2606bd38404b230c0a6baa183bcd9908 *DESCRIPTION
 ba6dc0ee1f6e9bd6aef5290cf37d6c1f *NAMESPACE
 1b8a5ee4961240af2f0df04088f0c293 *R/BAMBI.R
 3a993fdc632079c6c53fa92a6968cb87 *R/RcppExports.R
-9e80b65cd912b15e770c8cca03ba6fea *R/all_diagnostics.R
+605cbe8ad0c27b4f9c926d593317691b *R/all_diagnostics.R
 7af22d5f31fcd7fa765f3502cf97e352 *R/all_model_plots.R
 b26d0cad81e105986e41363a074ea1af *R/all_model_select.R
 5293c867757291cd605c9ac0a7b6382e *R/all_postprodn_fns.R
