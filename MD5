@@ -1,6 +1,6 @@
-2606bd38404b230c0a6baa183bcd9908 *DESCRIPTION
+bd7e48b1bc64221c328d7198a8732327 *DESCRIPTION
 ba6dc0ee1f6e9bd6aef5290cf37d6c1f *NAMESPACE
-1b8a5ee4961240af2f0df04088f0c293 *R/BAMBI.R
+c9121fd0377a8ae5a9a933e31e5f52e0 *R/BAMBI-package.R
 3a993fdc632079c6c53fa92a6968cb87 *R/RcppExports.R
 605cbe8ad0c27b4f9c926d593317691b *R/all_diagnostics.R
 7af22d5f31fcd7fa765f3502cf97e352 *R/all_model_plots.R
@@ -24,8 +24,11 @@ cddad985792e035a9b471a8b2dc7f3d8 *R/uniroot_all.R
 62dda7e4c3a763f1b5fa95cbc428c187 *R/vmstart.R
 b0793a4351800b36841bf9079757d572 *R/wnormstart.R
 17eaf365f57e16923938bb95def2ff7d *R/wrap_angles.R
+ba2225b5fc7722de2fe81e9bc11ae6bf *build/partial.rdb
 81772a76ae5a785d43670d78b0433f3d *data/tim8.rda
 bca492b6087907d406afa5b402fdfdef *data/wind.rda
+4884f08592f743b0b962f411500b7971 *inst/CITATION
+e806a6ead68c0910c1aa517fecd34932 *man/BAMBI.Rd
 6ada48d8476ca0247c374e3aa88d8956 *man/DIC.Rd
 18bb27d5596f298dda91592b74c471ad *man/add_burnin_thin.Rd
 893cfcd97306714151a6cb92dedc9c65 *man/as.mcmc.list.angmcmc.Rd
@@ -46,7 +49,7 @@ a1a8d5529eafe86a3c2c747b6734b582 *man/fit_vmsinmix.Rd
 0b0b3df4daa032e195f7a8bfdc7aa6dd *man/fit_wnorm2mix.Rd
 9c566ee75876c4b9af47217e4435f8a9 *man/fit_wnormmix.Rd
 e7c21052457e370dd7d3680cf8db9078 *man/fix_label.Rd
-bf4da3223d54a4fef2c838e1a894cef4 *man/is.angmcmc.Rd
+1477167301e1fca2ce969718489bb154 *man/is.angmcmc.Rd
 ab3b21126e84d4a4cd1330835faf9510 *man/latent_allocation.Rd
 9f6a3b55a627e223510148d191cd2e47 *man/logLik.angmcmc.Rd
 346fd4f1bdf7e1b1356f56a8921b34c9 *man/loo.angmcmc.Rd
