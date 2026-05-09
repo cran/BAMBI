@@ -1,10 +1,10 @@
-a4c43ab7f554322b0ed02a3e33b8fb6b *DESCRIPTION
+fa36c5b90434d3ac837f4b37a2bc9727 *DESCRIPTION
 6d079eb9eb5539a409ed886f7817c5ab *NAMESPACE
 b388b6d09431990f3b8c27a33871e8ad *R/BAMBI-package.R
 3a993fdc632079c6c53fa92a6968cb87 *R/RcppExports.R
 735cfb0c120648afa7409b36631f83b9 *R/all_diagnostics.R
 7af22d5f31fcd7fa765f3502cf97e352 *R/all_model_plots.R
-f77a7e70fa2de0c9d31ede2fd17ab59d *R/all_model_select.R
+a48a4dc3d5b451a792ca5bcf0cc031ff *R/all_model_select.R
 881d5185189041f806ce93223a6b19b8 *R/all_postprodn_fns.R
 3733ad9b08c24e656cbbf1f096518b1f *R/all_vm_fns.R
 8a69aa36ed9f484880464d708a252a26 *R/all_vmcos_fns.R
@@ -24,7 +24,7 @@ cddad985792e035a9b471a8b2dc7f3d8 *R/uniroot_all.R
 62dda7e4c3a763f1b5fa95cbc428c187 *R/vmstart.R
 b0793a4351800b36841bf9079757d572 *R/wnormstart.R
 17eaf365f57e16923938bb95def2ff7d *R/wrap_angles.R
-b54db8794555342c4feee5fe0b1b8f5b *build/partial.rdb
+9d5d57306c989a862d29353812d857e7 *build/partial.rdb
 81772a76ae5a785d43670d78b0433f3d *data/tim8.rda
 bca492b6087907d406afa5b402fdfdef *data/wind.rda
 4884f08592f743b0b962f411500b7971 *inst/CITATION
